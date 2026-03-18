@@ -35,9 +35,10 @@ export default function ProductsPage() {
     categorySlug: filters.categories.join(','),
     minPrice: filters.minPrice,
     maxPrice: filters.maxPrice,
-    rating: filters.rating,
+    minRating: filters.rating,
     inStock: filters.inStock,
-    sort,
+    sortBy: sort === 'price-asc' ? 'price' : sort === 'price-desc' ? 'price' : sort === 'newest' ? 'createdAt' : sort === 'top-rated' ? 'rating' : sort === 'popular' ? 'soldCount' : 'createdAt',
+    sortOrder: sort === 'price-asc' ? 'ASC' : 'DESC',
     q
   })
 

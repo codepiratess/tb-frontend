@@ -8,14 +8,14 @@ import { useSelector, useDispatch } from 'react-redux'
 import { 
   Zap, Search, ChevronDown, Heart, ShoppingCart, Menu, 
   Smartphone, Monitor, Shirt, Home, Sparkles, Trophy, 
-  BookOpen, Puzzle, ShoppingBasket, Sofa, TabletSmartphone, Tv
+  BookOpen, Puzzle, ShoppingBasket, Sofa, Tv, Tag
 } from 'lucide-react'
 import { selectCartCount } from '../../store/selectors/cartSelectors'
 import { selectWishlistCount } from '../../store/selectors/wishlistSelectors'
 import { RootState, AppDispatch } from '../../store'
 import { useCartDrawer } from '../../store/useCartDrawer'
-import { CATEGORY_LIST } from '../../constants'
 import { useSearchProducts } from '../../hooks/useProducts'
+import { useCategories } from '../../hooks/useCategories'
 import { useDebounce } from '../../hooks/useDebounce'
 import { logout } from '../../store/slices/authSlice'
 import { Input } from '../ui/Input'
@@ -34,7 +34,7 @@ const getCategoryIcon = (slug: string) => {
     case 'furniture': return <Sofa size={16} />
     case 'mobiles': return <Smartphone size={16} />
     case 'appliances': return <Tv size={16} />
-    default: return <Zap size={16} />
+    default: return <Tag size={16} />
   }
 }
 
@@ -55,6 +55,7 @@ export function Navbar() {
   
   const debouncedSearch = useDebounce(searchQuery, 400)
   const { data: searchResults, isLoading: isSearchLoading } = useSearchProducts(debouncedSearch)
+  const { data: categories } = useCategories()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -80,7 +81,7 @@ export function Navbar() {
   return (
     <header className="fixed top-0 left-0 w-full z-50 flex flex-col">
       {/* TOP ROW */}
-      <div className="bg-primary text-white h-[60px] md:h-[72px] flex items-center shadow-sm">
+      <div className="bg-[#2874F0] text-white h-[60px] md:h-[72px] flex items-center shadow-sm">
         <div className="container mx-auto px-4 flex items-center justify-between gap-4 lg:gap-8 max-w-7xl">
           
           <div className="flex items-center gap-3">
@@ -88,12 +89,10 @@ export function Navbar() {
               <Menu size={24} />
             </button>
             <Link href="/" className="flex items-center gap-1 group">
-              <span className="text-xl md:text-2xl font-bold italic tracking-tight group-hover:opacity-90 transition-opacity">
+              <span className="text-xl md:text-2xl font-black italic tracking-tight">
                 TownBolt
               </span>
-              <div className="bg-white/20 p-1 rounded-full group-hover:bg-white/30 transition-colors">
-                <Zap size={18} className="text-yellow-400 fill-yellow-400" />
-              </div>
+              <Zap size={20} className="text-yellow-400 fill-yellow-400 animate-pulse" />
             </Link>
           </div>
 
@@ -107,12 +106,12 @@ export function Navbar() {
                   setShowDropdown(true)
                 }}
                 onFocus={() => setShowDropdown(true)}
-                placeholder="Search for products, brands and more"
-                className="w-full h-10 pl-4 pr-12 rounded-sm text-text-primary text-sm focus:outline-none shadow-sm"
+                placeholder="Search for products, categories and more"
+                className="w-full h-10 pl-4 pr-12 rounded-sm text-gray-900 text-sm focus:outline-none bg-white"
               />
               <button 
                 type="submit" 
-                className="absolute right-0 top-0 h-10 w-12 flex items-center justify-center text-primary group-hover:bg-primary-light rounded-r-sm transition-colors"
+                className="absolute right-0 top-0 h-10 w-12 flex items-center justify-center text-[#2874F0]"
               >
                 <Search size={20} />
               </button>
@@ -135,30 +134,30 @@ export function Navbar() {
                       className="absolute top-12 left-0 w-full bg-white rounded-sm shadow-xl z-50 overflow-hidden border border-gray-100"
                     >
                       {isSearchLoading ? (
-                        <div className="p-4 text-center text-sm text-text-secondary">Searching...</div>
+                        <div className="p-4 text-center text-sm text-gray-400 italic">Searching...</div>
                       ) : (searchResults?.data?.length || 0) > 0 ? (
                         <div className="max-h-80 overflow-y-auto">
                           {searchResults?.data.slice(0, 5).map((product: any) => (
                             <Link 
                               key={product.id} 
                               href={`/products/${product.slug}`}
-                              className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-50 last:border-0 transition-colors"
+                              className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
                               onClick={() => {
                                 setShowDropdown(false)
                                 setSearchQuery('')
                               }}
                             >
-                              <Search size={16} className="text-text-secondary flex-shrink-0" />
+                              <Search size={16} className="text-gray-400 flex-shrink-0" />
                               <div className="flex flex-col">
-                                <span className="text-sm text-text-primary font-medium line-clamp-1">{product.name}</span>
-                                <span className="text-xs text-text-secondary">in {product.category?.name}</span>
+                                <span className="text-sm text-gray-900 font-bold line-clamp-1">{product.name}</span>
+                                <span className="text-[10px] text-gray-400 font-black uppercase">{product.category?.name}</span>
                               </div>
                             </Link>
                           ))}
                         </div>
                       ) : (
-                        <div className="p-4 text-center text-sm text-text-secondary">
-                          No results found for &quot;{debouncedSearch}&quot;
+                        <div className="p-4 text-center text-sm text-gray-400">
+                          No results found
                         </div>
                       )}
                     </motion.div>
@@ -170,26 +169,23 @@ export function Navbar() {
           <div className="flex items-center gap-2 lg:gap-6">
             <div className="hidden md:block relative group">
               {user ? (
-                <div className="flex items-center gap-1 cursor-pointer py-2 hover:opacity-90 font-medium">
+                <div className="flex items-center gap-1 cursor-pointer py-2 hover:opacity-90 font-bold">
                   {user.firstName}
                   <ChevronDown size={16} className="group-hover:rotate-180 transition-transform duration-200" />
                   
                   <div className="absolute top-full right-0 pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                    <div className="bg-white z-999 rounded-sm shadow-xl border border-gray-100 flex flex-col overflow-hidden text-text-primary">
+                    <div className="bg-white rounded-xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden text-gray-900 p-2">
                       {user.role === 'admin' && (
-                        <Link href="/admin" className="px-4 py-3 text-sm hover:bg-gray-50 transition-colors border-b border-gray-100 font-medium text-primary">
-                          Admin Dashboard
+                        <Link href="/admin" className="px-4 py-3 text-xs font-black uppercase hover:bg-blue-50 hover:text-[#2874F0] rounded-lg transition-colors">
+                          Admin Panel
                         </Link>
                       )}
-                      <Link href="/orders" className="px-4 py-3 text-sm hover:bg-gray-50 transition-colors border-b border-gray-100">
+                      <Link href="/orders" className="px-4 py-3 text-xs font-black uppercase hover:bg-slate-50 rounded-lg transition-colors">
                         My Orders
-                      </Link>
-                      <Link href="/profile" className="px-4 py-3 text-sm hover:bg-gray-50 transition-colors border-b border-gray-100">
-                        My Profile
                       </Link>
                       <button 
                         onClick={handleLogout}
-                        className="px-4 py-3 text-sm hover:bg-gray-50 text-left transition-colors text-error"
+                        className="px-4 py-3 text-xs font-black uppercase hover:bg-red-50 text-red-500 rounded-lg text-left"
                       >
                         Logout
                       </button>
@@ -197,18 +193,18 @@ export function Navbar() {
                   </div>
                 </div>
               ) : (
-                <Link href="/auth/login" className="bg-white text-primary px-6 py-1.5 rounded-sm font-medium hover:bg-gray-100 transition-colors">
+                <Link href="/auth/login" className="bg-white text-[#2874F0] px-6 py-1.5 rounded-sm font-black text-sm uppercase shadow-lg shadow-black/10">
                   Login
                 </Link>
               )}
             </div>
 
-            <Link href="/wishlist" className="hidden md:flex items-center gap-1 hover:opacity-90 transition-opacity">
+            <Link href="/wishlist" className="hidden md:flex items-center gap-1">
               <div className="relative">
                 <Heart size={22} className="text-white" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-accent text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center">
-                    {wishlistCount > 99 ? '99+' : wishlistCount}
+                  <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[10px] font-black h-4 w-4 rounded-full flex items-center justify-center">
+                    {wishlistCount}
                   </span>
                 )}
               </div>
@@ -216,47 +212,41 @@ export function Navbar() {
 
             <button 
               onClick={openCart}
-              className="flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer relative"
+              className="flex items-center gap-2 relative"
             >
               <ShoppingCart size={22} className="text-white" />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-accent text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center shadow-sm">
-                  {cartCount > 99 ? '99+' : cartCount}
+                <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[10px] font-black h-4 w-4 rounded-full flex items-center justify-center shadow-lg">
+                  {cartCount}
                 </span>
               )}
-              <span className="font-medium hidden md:block">Cart</span>
+              <span className="font-black text-sm uppercase hidden md:block">Cart</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* BOTTOM ROW */}
+      {/* BOTTOM ROW (Categories) */}
       <AnimatePresence>
-        {!isScrolled && (
+        {!isScrolled && categories && (
           <motion.div 
-            initial={{ height: 40, opacity: 1 }}
-            exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
+            initial={{ height: 40, opacity: 0 }}
             animate={{ height: 40, opacity: 1 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="hidden md:block bg-surface border-b border-border shadow-sm transform origin-top"
+            exit={{ height: 0, opacity: 0 }}
+            className="hidden md:block bg-white border-b shadow-sm z-[-1]"
           >
             <div className="container mx-auto px-4 h-full flex items-center justify-between max-w-7xl overflow-x-auto no-scrollbar">
-              {CATEGORY_LIST.map((cat) => (
+              {(Array.isArray(categories) ? categories : []).slice(0, 10).map((cat: any) => (
                 <Link 
-                  key={cat.slug} 
+                  key={cat.id} 
                   href={`/category/${cat.slug}`}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors relative group
-                    ${pathname === `/category/${cat.slug}` ? 'text-primary' : 'text-text-primary hover:text-primary'}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-black uppercase tracking-wider transition-colors relative group
+                    ${pathname === `/category/${cat.slug}` ? 'text-[#2874F0]' : 'text-gray-500 hover:text-[#2874F0]'}
                   `}
                 >
-                  <span className={`${pathname === `/category/${cat.slug}` ? 'text-primary' : 'text-text-secondary group-hover:text-primary transition-colors'}`}>
-                    {getCategoryIcon(cat.slug)}
-                  </span>
+                  {getCategoryIcon(cat.slug)}
                   {cat.name}
-                  
-                  <span className={`absolute bottom-0 left-0 w-full h-0.5 bg-primary transform origin-left transition-transform duration-300
-                    ${pathname === `/category/${cat.slug}` ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}
-                  `} />
+                  <span className={`absolute bottom-0 left-0 w-full h-0.5 bg-[#2874F0] transform transition-transform duration-300 ${pathname === `/category/${cat.slug}` ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`} />
                 </Link>
               ))}
             </div>

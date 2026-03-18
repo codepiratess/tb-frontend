@@ -17,7 +17,9 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
   const searchParams = useSearchParams()
 
   const category = CATEGORY_LIST.find(c => c.slug === slug)
-  
+
+  console.log("category--------------->", category)
+
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
   const [filters, setFilters] = useState<FilterState>({
     categories: [slug], // Pre-filled with current category
@@ -37,35 +39,36 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
     categorySlug: filters.categories.join(','), // Will initially just be 'slug'
     minPrice: filters.minPrice,
     maxPrice: filters.maxPrice,
-    rating: filters.rating,
+    minRating: filters.rating,
     inStock: filters.inStock,
-    sort,
+    sortBy: sort === 'price-asc' ? 'price' : sort === 'price-desc' ? 'price' : sort === 'newest' ? 'createdAt' : sort === 'top-rated' ? 'rating' : sort === 'popular' ? 'soldCount' : 'createdAt',
+    sortOrder: sort === 'price-asc' ? 'ASC' : 'DESC',
   })
 
   // Sync state to URL when filters change
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters)
-    
+
     const params = new URLSearchParams(searchParams)
-    
+
     // We update categories if user multi-selects, but base slug should probably stay if they are on this route.
     if (newFilters.categories.length > 0) params.set('categories', newFilters.categories.join(','))
     else params.delete('categories')
-      
+
     if (newFilters.minPrice > 0) params.set('minPrice', newFilters.minPrice.toString())
     else params.delete('minPrice')
-      
+
     if (newFilters.maxPrice < 999999) params.set('maxPrice', newFilters.maxPrice.toString())
     else params.delete('maxPrice')
-      
+
     if (newFilters.rating > 0) params.set('rating', newFilters.rating.toString())
     else params.delete('rating')
-      
+
     if (newFilters.inStock) params.set('inStock', 'true')
     else params.delete('inStock')
-      
+
     params.set('page', '1') // reset to first page on filter change
-    
+
     router.push(`${pathname}?${params.toString()}`)
   }
 
@@ -87,7 +90,7 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
   const activeFiltersCount = (filters.categories.length > 1 ? filters.categories.length - 1 : 0) + (filters.minPrice > 0 ? 1 : 0) + (filters.maxPrice < 999999 ? 1 : 0) + (filters.rating > 0 ? 1 : 0) + (filters.inStock ? 1 : 0)
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -109,7 +112,7 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
-        
+
         {/* Desktop Sidebar */}
         <div className="hidden lg:block w-72 shrink-0 h-[calc(100vh-140px)] sticky top-24">
           <ProductFilters filters={filters} onFilterChange={handleFilterChange} />
@@ -117,10 +120,10 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
 
         {/* Main Content */}
         <div className="flex-1 w-full flex flex-col min-h-screen">
-          
+
           {/* Top Bar */}
           <div className="bg-white p-4 rounded-sm shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
-            
+
             <div className="flex items-center gap-2 text-sm text-text-primary font-medium">
               <span>
                 Showing {data ? (page - 1) * limit + 1 : 0}–{data ? Math.min(page * limit, data.total) : 0} of {data?.total || 0} products
@@ -128,7 +131,7 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button 
+              <button
                 onClick={() => setIsMobileFilterOpen(true)}
                 className="lg:hidden flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 px-4 bg-white border border-gray-200 rounded-sm text-sm font-medium hover:bg-gray-50"
               >
@@ -141,7 +144,7 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
               </button>
 
               <div className="relative flex-1 sm:flex-none">
-                <select 
+                <select
                   value={sort}
                   onChange={handleSortChange}
                   className="w-full h-10 pl-3 pr-8 bg-white border border-gray-200 rounded-sm text-sm font-medium outline-none focus:border-primary appearance-none cursor-pointer"
@@ -158,29 +161,29 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
             </div>
           </div>
 
-          <ProductGrid 
-            products={data?.data || []} 
-            isLoading={isLoading} 
+          <ProductGrid
+            products={data?.data || []}
+            isLoading={isLoading}
           />
 
           {/* simple pagination next prev */}
           {!isLoading && data?.data && data.data.length > 0 && totalPages > 1 && (
             <div className="mt-8 mb-12 flex items-center justify-center gap-4">
-               <button
-                  onClick={() => handlePageChange(Math.max(1, page - 1))}
-                  disabled={page === 1}
-                  className="px-6 py-2 bg-white border border-gray-300 font-bold rounded-sm disabled:opacity-50"
-               >
-                 Previous
-               </button>
-               <span className="text-sm font-bold">Page {page} of {totalPages}</span>
-               <button
-                  onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
-                  disabled={page === totalPages}
-                  className="px-6 py-2 bg-white border border-gray-300 font-bold rounded-sm disabled:opacity-50"
-               >
-                 Next
-               </button>
+              <button
+                onClick={() => handlePageChange(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="px-6 py-2 bg-white border border-gray-300 font-bold rounded-sm disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="text-sm font-bold">Page {page} of {totalPages}</span>
+              <button
+                onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                className="px-6 py-2 bg-white border border-gray-300 font-bold rounded-sm disabled:opacity-50"
+              >
+                Next
+              </button>
             </div>
           )}
         </div>
@@ -214,13 +217,13 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
                 <ProductFilters filters={filters} onFilterChange={setFilters} />
               </div>
               <div className="p-4 border-t border-gray-100 flex gap-4 bg-white">
-                <button 
+                <button
                   onClick={() => setFilters({ categories: [slug], minPrice: 0, maxPrice: 999999, rating: 0, inStock: false })}
                   className="flex-1 py-3 border border-gray-200 rounded-sm font-bold text-text-primary"
                 >
                   Clear All
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     handleFilterChange(filters)
                     setIsMobileFilterOpen(false)

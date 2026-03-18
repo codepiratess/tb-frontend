@@ -12,12 +12,12 @@ interface ProductGridProps {
   emptyMessage?: string
 }
 
-export function ProductGrid({ 
-  products, 
-  isLoading, 
-  emptyMessage = "No products found" 
+export function ProductGrid({
+  products,
+  isLoading,
+  emptyMessage = "No products found"
 }: ProductGridProps) {
-  
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">

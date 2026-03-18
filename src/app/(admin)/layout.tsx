@@ -56,7 +56,7 @@ export default function AdminLayout({
         <AdminHeader />
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 p-4 md:p-8 lg:p-10 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-8 lg:p-10 max-h-[calc(100vh-64px)] overflow-y-auto">
           <AnimatePresence mode="wait">
             <motion.div
               layout

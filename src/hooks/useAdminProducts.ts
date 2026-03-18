@@ -10,9 +10,9 @@ export function useAdminProducts(filters: any = {}) {
     queryKey: ['admin-products', filters],
     queryFn: async () => {
       const { data } = await api.get(API_ENDPOINTS.PRODUCTS.ALL, {
-        params: { ...filters, admin: true },
+        params: { ...filters, includeInactive: true },
       });
-      return data;
+      return data.data || data;
     },
   });
 }

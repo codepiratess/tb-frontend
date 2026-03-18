@@ -27,8 +27,8 @@ export default function NewProductPage() {
   return (
     <div className="space-y-6 pb-20 max-w-5xl mx-auto">
       <div className="flex flex-col gap-2">
-        <button 
-          onClick={() => router.back()} 
+        <button
+          onClick={() => router.back()}
           className="text-xs font-black text-slate-400 hover:text-[#2874F0] flex items-center gap-1 w-fit transition-colors uppercase tracking-widest"
         >
           <ChevronLeft size={14} /> Back to Inventory

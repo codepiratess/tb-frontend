@@ -56,9 +56,9 @@ export default function UserProfilePage() {
            <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 p-8 border border-slate-50 relative overflow-hidden group">
               <div className="relative z-10 flex flex-col items-center">
                  <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-[#2874F0] to-blue-600 flex items-center justify-center text-3xl font-black text-white shadow-2xl shadow-blue-500/30 mb-4 transform rotate-3 group-hover:rotate-6 transition-transform">
-                    {user?.name?.charAt(0) || 'U'}
+                    {user?.firstName?.charAt(0) || 'U'}
                  </div>
-                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">{user?.name || 'Guest User'}</h2>
+                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">{user?.firstName} {user?.lastName || ''}</h2>
                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Premium Member • 12 Orders</p>
                  
                  <div className="mt-8 grid grid-cols-2 gap-4 w-full">
@@ -138,7 +138,7 @@ export default function UserProfilePage() {
                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
                                   <User size={12} /> Full Identity
                                </p>
-                               <p className="text-lg font-black text-slate-900 tracking-tight">{user?.name || 'User Name'}</p>
+                                <p className="text-lg font-black text-slate-900 tracking-tight">{user?.firstName} {user?.lastName || ''}</p>
                             </div>
                             <div className="p-5 bg-slate-50/50 rounded-3xl border border-slate-100 group hover:border-[#2874F0]/30 transition-all">
                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">

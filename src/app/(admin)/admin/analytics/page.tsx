@@ -32,12 +32,7 @@ import {
   useOrdersByHour 
 } from '@/hooks/useAdminAnalytics'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  mockDashboardStats, 
-  mockRevenueData, 
-  mockCategoryData, 
-  mockTopProducts, 
-} from '@/lib/mockData'
+// No mock imports here
 
 export default function AdminAnalyticsPage() {
   const { data: statsData, isLoading: statsLoading } = useDashboardStats()
@@ -45,11 +40,11 @@ export default function AdminAnalyticsPage() {
   const { data: categoryDataRaw, isLoading: categoryLoading } = useSalesByCategory()
   const { data: topProductsRaw, isLoading: topProductsLoading } = useTopProducts(10)
   
-  // Use mock data as fallback
-  const stats = statsData ?? mockDashboardStats
-  const revenueData = revenueDataRaw ?? mockRevenueData
-  const categoryData = categoryDataRaw ?? mockCategoryData
-  const topProducts = topProductsRaw ?? mockTopProducts
+  // No fallback to mock data
+  const stats = statsData || { totalRevenue: 0, totalOrders: 0, totalProducts: 0, totalCustomers: 0, revenueGrowth: 0, ordersGrowth: 0, productsGrowth: 0, customersGrowth: 0, ordersToday: 0 }
+  const revenueData = revenueDataRaw || []
+  const categoryData = categoryDataRaw || []
+  const topProducts = topProductsRaw || []
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -144,7 +139,7 @@ export default function AdminAnalyticsPage() {
                  <SalesByCategoryChart data={categoryData} isLoading={categoryLoading} />
                </div>
                <div className="space-y-3 pt-6 border-t border-slate-50">
-                  {categoryData.slice(0, 3).map((cat, i) => (
+                  {categoryData.slice(0, 3).map((cat: any, i: number) => (
                     <div key={i} className="flex items-center justify-between group cursor-default">
                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                           <div className={`w-2.5 h-2.5 rounded-full ${['bg-blue-500', 'bg-purple-500', 'bg-orange-400'][i]}`} />
@@ -170,7 +165,7 @@ export default function AdminAnalyticsPage() {
             </div>
             
             <div className="space-y-4">
-               {topProducts.slice(0, 5).map((product: any, i) => (
+               {topProducts.slice(0, 5).map((product: any, i: number) => (
                  <div key={i} className="flex items-center gap-4 group">
                     <div className="w-10 h-10 text-[10px] font-black text-slate-400 flex items-center justify-center bg-slate-50 rounded-lg group-hover:bg-slate-900 group-hover:text-white transition-all uppercase tracking-widest">
                        #0{i + 1}
@@ -200,7 +195,7 @@ export default function AdminAnalyticsPage() {
                <p className="text-[10px] font-black text-green-600 bg-green-50 px-2.5 py-1 rounded-full uppercase tracking-tighter">Optimal Time: 6:00 PM</p>
             </div>
             <div className="h-[240px] flex items-end justify-between gap-2 px-2">
-                {[4, 12, 18, 22, 14, 8, 24, 32, 28, 48, 42, 38, 52, 64, 58, 42, 32, 24, 18, 12, 8, 4, 2, 1].map((h, i) => (
+                 {[4, 12, 18, 22, 14, 8, 24, 32, 28, 48, 42, 38, 52, 64, 58, 42, 32, 24, 18, 12, 8, 4, 2, 1].map((h: number, i: number) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
                      <div 
                       className="w-full bg-slate-100 rounded-t-md group-hover:bg-[#2874F0] group-hover:shadow-[0_0_15px_rgba(40,116,240,0.3)] transition-all cursor-pointer relative" 

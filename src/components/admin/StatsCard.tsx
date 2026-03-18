@@ -43,7 +43,10 @@ export const StatsCard: React.FC<StatsCardProps> = ({
     )
   }
 
+
   const isPositive = trend >= 0
+  console.log("title------------->", title)
+  console.log("value------------->", value)
 
   return (
     <motion.div
@@ -52,13 +55,13 @@ export const StatsCard: React.FC<StatsCardProps> = ({
     >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <div 
+          <div
             className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
             style={{ backgroundColor: iconBg }}
           >
             <Icon size={24} style={{ color: iconColor }} />
           </div>
-          
+
           <div>
             <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
               {title}
@@ -66,11 +69,10 @@ export const StatsCard: React.FC<StatsCardProps> = ({
             <h3 className="text-28px font-bold text-gray-900">
               {prefix}{value}
             </h3>
-            
+
             <div className="flex items-center gap-1.5 mt-2">
-              <span className={`flex items-center gap-0.5 text-sm font-medium ${
-                isPositive ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <span className={`flex items-center gap-0.5 text-sm font-medium ${isPositive ? 'text-green-600' : 'text-red-600'
+                }`}>
                 {isPositive ? (
                   <TrendingUp size={14} className="shrink-0" />
                 ) : (

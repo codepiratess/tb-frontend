@@ -15,26 +15,39 @@ import { ProductImageGallery } from '../../../../components/product/ProductImage
 import { ProductCarousel } from '../../../../components/product/ProductCarousel'
 import { RatingStars } from '../../../../components/ui/RatingStars'
 import { Button } from '../../../../components/ui/Button'
-import { formatPrice, calculateDiscount } from '../../../../lib/utils'
+import { formatPrice } from '../../../../lib/utils'
 import { CATEGORY_LIST } from '../../../../constants'
 import { addToCart } from '../../../../store/slices/cartSlice'
 import { addToWishlist, removeFromWishlist } from '../../../../store/slices/wishlistSlice'
 import { selectIsInWishlist } from '../../../../store/selectors/wishlistSelectors'
-import { mockProducts } from '../../../../lib/mockData'
+import { useProduct, useProducts } from '../../../../hooks/useProducts'
 
 export default function ProductDetailClient({ slug }: { slug: string }) {
   const router = useRouter()
   const dispatch = useDispatch()
   
-  // Mock fetch
-  const product = mockProducts.find(p => p.slug === slug)
-  const similarProducts = mockProducts.filter(p => p.category === product?.category && p.id !== product?.id).slice(0, 8)
+  const { data: product, isLoading: productLoading } = useProduct(slug)
+  const { data: similarProductsData } = useProducts({ 
+    categorySlug: product?.category?.slug,
+    limit: 8 
+  })
+  
+  const similarProducts = similarProductsData?.data?.filter((p: any) => p.id !== product?.id) || []
   
   const [quantity, setQuantity] = useState(1)
   const [pincode, setPincode] = useState('')
   const [deliveryStatus, setDeliveryStatus] = useState<null | { ok: boolean, msg: string }>(null)
   
   const isInWishlist = useSelector(product ? selectIsInWishlist(product.id) : () => false)
+
+  if (productLoading) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center animate-pulse">
+        <div className="h-64 bg-gray-200 rounded-sm mb-8" />
+        <div className="h-8 bg-gray-200 w-1/2 mx-auto" />
+      </div>
+    )
+  }
 
   if (!product) {
     return (
@@ -47,7 +60,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
     )
   }
 
-  const categoryName = product.category.name || CATEGORY_LIST.find(c => c.slug === product.category.slug)?.name
+  const categoryName = product.category?.name || CATEGORY_LIST.find(c => c.slug === product.category?.slug)?.name || 'Products'
 
   const handleAddToCart = () => {
     dispatch(addToCart({ product, quantity }))
@@ -91,9 +104,9 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
           {/* Left: Images */}
           <div className="w-full lg:w-[40%] xl:w-[45%] p-4 lg:p-6 lg:border-r border-gray-100 flex flex-col">
             <div className="flex-1 top-24">
-              <ProductImageGallery images={product.images} productName={product.name} />
+              <ProductImageGallery images={product.images || []} productName={product.name} />
               
-              {/* Action Buttons (Desktop placement, but full width layout logic) */}
+              {/* Action Buttons (Desktop placement) */}
               <div className="mt-8 flex gap-4 hidden lg:flex">
                 <Button 
                   onClick={handleAddToCart}
@@ -120,7 +133,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
             <div className="flex items-center gap-1.5 text-xs text-text-secondary mb-3">
               <Link href="/" className="hover:text-primary">Home</Link>
               <ChevronRight size={12} />
-              <Link href={`/category/${product.category}`} className="hover:text-primary">{categoryName}</Link>
+              <Link href={`/category/${product.category?.slug}`} className="hover:text-primary">{categoryName}</Link>
               <ChevronRight size={12} />
               <span className="text-text-primary line-clamp-1">{product.name}</span>
             </div>
@@ -130,10 +143,10 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
             
             <div className="flex items-center gap-4 mb-4">
               <div className="flex items-center gap-1.5 bg-success text-white px-2 py-0.5 rounded-sm text-xs font-bold">
-                {product.rating} <Star size={10} className="fill-white" />
+                {product.rating || 4.5} <Star size={10} className="fill-white" />
               </div>
               <span className="text-sm text-text-secondary font-medium hover:text-primary cursor-pointer transition-colors">
-                {product.reviewCount} Ratings & {Math.floor(product.reviewCount / 3)} Reviews
+                {product.reviewCount || 0} Ratings & {Math.floor((product.reviewCount || 0) / 3)} Reviews
               </span>
             </div>
 
@@ -142,10 +155,12 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
               <span className="text-success font-bold text-sm">Special price</span>
               <div className="flex items-end gap-3 flex-wrap">
                 <span className="text-3xl font-bold text-gray-900">{formatPrice(product.price)}</span>
-                {product.discount > 0 && (
+                {product.originalPrice > product.price && (
                   <>
                     <span className="text-base text-gray-500 line-through mb-1">{formatPrice(product.originalPrice)}</span>
-                    <span className="text-base text-success font-bold mb-1">{product.discount}% off</span>
+                    <span className="text-base text-success font-bold mb-1">
+                      {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% off
+                    </span>
                   </>
                 )}
               </div>
@@ -208,13 +223,13 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                 </div>
               )}
               {product.stock === 0 && (
-                <div className="ml-auto text-error text-base font-bold flex items-center mt-6 uppercase">
+                <div className="ml-auto text-red-500 text-base font-bold flex items-center mt-6 uppercase">
                   Out of Stock
                 </div>
               )}
             </div>
 
-            {/* Mobile Action Buttons (sticky at bottom on real mobile device usually, here placed inline for simplicity) */}
+            {/* Mobile Action Buttons */}
             <div className="flex gap-3 mb-8 lg:hidden">
               <Button 
                 onClick={handleAddToCart}
@@ -237,15 +252,15 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
               <span className="text-base font-semibold text-gray-900 mb-3 block">Available offers</span>
               <ul className="space-y-3 text-sm">
                 <li className="flex gap-2 items-start">
-                  <Tag size={16} className="text-success mt-0.5 shrink-0" />
+                  <Tag size={16} className="text-green-600 mt-0.5 shrink-0" />
                   <span className="text-gray-700"><strong className="font-semibold text-gray-900">Bank Offer:</strong> 10% instant discount on HDFC Bank Credit Cards, up to ₹1000 on orders of ₹5,000 and above <span className="text-primary cursor-pointer hover:underline font-medium ml-1">T&C</span></span>
                 </li>
                 <li className="flex gap-2 items-start">
-                  <Tag size={16} className="text-success mt-0.5 shrink-0" />
+                  <Tag size={16} className="text-green-600 mt-0.5 shrink-0" />
                   <span className="text-gray-700"><strong className="font-semibold text-gray-900">Bank Offer:</strong> 5% Cashback on TownBolt Axis Bank Card <span className="text-primary cursor-pointer hover:underline font-medium ml-1">T&C</span></span>
                 </li>
                 <li className="flex gap-2 items-start">
-                  <Tag size={16} className="text-success mt-0.5 shrink-0" />
+                  <Tag size={16} className="text-green-600 mt-0.5 shrink-0" />
                   <span className="text-gray-700"><strong className="font-semibold text-gray-900">Special Price:</strong> Get extra 15% off (price inclusive of cashback/coupon) <span className="text-primary cursor-pointer hover:underline font-medium ml-1">T&C</span></span>
                 </li>
               </ul>
@@ -273,28 +288,28 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                   </button>
                 </div>
                 {deliveryStatus && (
-                  <div className={`text-xs font-medium mt-1 ${deliveryStatus.ok ? 'text-success' : 'text-error'}`}>
+                  <div className={`text-xs font-medium mt-1 ${deliveryStatus.ok ? 'text-green-600' : 'text-red-500'}`}>
                     {deliveryStatus.msg}
                   </div>
                 )}
-                {!deliveryStatus && <div className="text-xs text-text-secondary mt-1">Please enter PIN code to check delivery time & Pay on Delivery Availability</div>}
+                {!deliveryStatus && <div className="text-xs text-gray-500 mt-1">Please enter PIN code to check delivery time & Pay on Delivery Availability</div>}
                 
                 <div className="mt-4 flex flex-col gap-3">
                   <div className="flex items-start gap-3">
-                    <Truck size={20} className="text-text-secondary" />
+                    <Truck size={20} className="text-gray-500" />
                     <div>
                       <p className="font-medium text-gray-900">Free Delivery</p>
                       <p className="text-xs text-gray-500">If ordered within next 2 hrs</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <RotateCcw size={20} className="text-text-secondary" />
+                    <RotateCcw size={20} className="text-gray-500" />
                     <div>
                       <p className="font-medium text-gray-900">7 Days Replacement Policy</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Shield size={20} className="text-text-secondary" />
+                    <Shield size={20} className="text-gray-500" />
                     <div>
                       <p className="font-medium text-gray-900">GST invoice available</p>
                     </div>
@@ -321,7 +336,6 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
               <div className="w-[110px] text-gray-500 font-medium shrink-0">Description</div>
               <div className="flex-1 text-gray-800 leading-relaxed">
                 {product.description}
-                {/* Mock long text to show expansion logic if needed, but simple for now */}
               </div>
             </div>
             

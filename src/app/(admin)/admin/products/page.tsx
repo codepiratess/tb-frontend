@@ -25,9 +25,9 @@ export default function AdminProductsPage() {
     search: searchQuery || undefined
   })
 
-  // Fallback to mock data
-  const products = productsData?.data ?? mockProducts
-  const totalCount = productsData?.total ?? mockProducts.length
+  // No fallback to mock data
+  const products = productsData?.data ?? []
+  const totalCount = productsData?.total ?? 0
 
   const { mutate: deleteProduct } = useDeleteProduct()
   const { mutate: toggleStatus } = useToggleProductStatus()
@@ -35,10 +35,10 @@ export default function AdminProductsPage() {
 
   const tabs: { id: TabType; label: string; count?: number }[] = [
     { id: 'all', label: 'All', count: totalCount },
-    { id: 'active', label: 'Active', count: products.filter(p => p.status === 'active').length },
-    { id: 'inactive', label: 'Inactive', count: products.filter(p => p.status === 'inactive').length },
-    { id: 'low-stock', label: 'Low Stock', count: products.filter(p => p.stock > 0 && p.stock < 10).length },
-    { id: 'out-of-stock', label: 'Out of Stock', count: products.filter(p => p.stock === 0).length },
+    { id: 'active', label: 'Active', count: products.filter((p: any) => p.isActive === true).length },
+    { id: 'inactive', label: 'Inactive', count: products.filter((p: any) => p.isActive === false).length },
+    { id: 'low-stock', label: 'Low Stock', count: products.filter((p: any) => p.stock > 0 && p.stock < 10).length },
+    { id: 'out-of-stock', label: 'Out of Stock', count: products.filter((p: any) => p.stock === 0).length },
   ]
 
   const handleDelete = () => {
@@ -163,9 +163,9 @@ export default function AdminProductsPage() {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Product"
-        description="Are you sure you want to delete this product? This action cannot be undone and will remove the product from your store catalogue."
-        confirmText="Delete Product"
-        cancelText="Cancel"
+        message="Are you sure you want to delete this product? This action cannot be undone and will remove the product from your store catalogue."
+        confirmLabel="Delete Product"
+        cancelLabel="Cancel"
         variant="danger"
       />
     </div>

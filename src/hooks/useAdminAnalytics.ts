@@ -18,7 +18,8 @@ export function useRevenueData(period: '7d' | '30d' | '3m' | '1y') {
         return mockRevenueData.slice(-count)
       }
       const res = await fetch(`/api/admin/analytics/revenue?period=${period}`)
-      return res.json()
+      const body = await res.json()
+      return body.data || body
     },
     staleTime: 10 * 60 * 1000
   })
@@ -30,7 +31,8 @@ export function useDashboardStats() {
     queryFn: async () => {
       if (USE_MOCK) return mockDashboardStats
       const res = await fetch('/api/admin/analytics/dashboard-stats')
-      return res.json()
+      const body = await res.json()
+      return body.data || body
     },
     staleTime: 5 * 60 * 1000
   })
@@ -42,7 +44,8 @@ export function useSalesByCategory() {
     queryFn: async () => {
       if (USE_MOCK) return mockSalesByCategory
       const res = await fetch('/api/admin/analytics/sales-by-category')
-      return res.json()
+      const body = await res.json()
+      return body.data || body
     }
   })
 }
@@ -53,7 +56,8 @@ export function useTopProducts(limit: number = 5) {
     queryFn: async () => {
       if (USE_MOCK) return mockTopProducts.slice(0, limit)
       const res = await fetch(`/api/admin/analytics/top-products?limit=${limit}`)
-      return res.json()
+      const body = await res.json()
+      return body.data || body
     }
   })
 }
@@ -64,7 +68,8 @@ export function useOrdersByHour() {
     queryFn: async () => {
       if (USE_MOCK) return mockOrdersByHour
       const res = await fetch('/api/admin/analytics/orders-by-hour')
-      return res.json()
+      const body = await res.json()
+      return body.data || body
     }
   })
 }

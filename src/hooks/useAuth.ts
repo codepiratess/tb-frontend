@@ -175,3 +175,16 @@ export function useResetPassword() {
     },
   })
 }
+export function useAuth() {
+  const { user, accessToken, loading } = useSelector((state: RootState) => state.auth)
+  const logoutMutation = useLogout()
+
+  return {
+    user,
+    token: accessToken,
+    isAuthenticated: !!accessToken,
+    isLoading: loading,
+    logout: () => logoutMutation.mutate(),
+    isAdmin: user?.role === 'admin'
+  }
+}

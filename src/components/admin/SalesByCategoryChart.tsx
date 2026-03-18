@@ -107,7 +107,7 @@ export const SalesByCategoryChart: React.FC<SalesByCategoryChartProps> = ({ data
                       <p className="text-xs font-bold text-gray-900 mb-1">{payload[0].name}</p>
                       <p className="text-sm font-bold text-[#2874F0]">{formatPrice(payload[0].value as number)}</p>
                       <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
-                        {payload[0].payload.percentage.toFixed(1)}% of total
+                        {(payload[0].payload?.percentage || 0).toFixed(1)}% of total
                       </p>
                     </div>
                   )
@@ -128,7 +128,7 @@ export const SalesByCategoryChart: React.FC<SalesByCategoryChartProps> = ({ data
                 style={{ backgroundColor: COLORS[index % COLORS.length] }}
               />
               <span className="text-xs font-medium text-gray-600 truncate">{item.category}</span>
-              <span className="text-xs font-bold text-gray-900 ml-auto">{item.percentage.toFixed(0)}%</span>
+              <span className="text-xs font-bold text-gray-900 ml-auto">{(item.percentage || 0).toFixed(0)}%</span>
             </div>
           ))}
         </div>

@@ -7,7 +7,6 @@ import { useAdminSubcategories, useCreateSubcategory, useUpdateSubcategory, useD
 import { useAdminCategories } from '@/hooks/useAdminCategories'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-hot-toast'
-import { mockSubcategories, mockCategories } from '@/lib/mockData'
 
 export default function AdminSubcategoriesPage() {
   const [isAdding, setIsAdding] = useState(false)
@@ -15,10 +14,10 @@ export default function AdminSubcategoriesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   
   const { data: subcategoriesResponse, isLoading } = useAdminSubcategories()
-  const subcategories = subcategoriesResponse?.data ?? mockSubcategories
+  const subcategories = subcategoriesResponse?.data ?? []
 
   const { data: categoriesResponse } = useAdminCategories()
-  const categories = categoriesResponse?.data ?? mockCategories
+  const categories = categoriesResponse?.data ?? []
 
   const { mutate: createSub } = useCreateSubcategory()
   const { mutate: updateSub } = useUpdateSubcategory()
@@ -70,7 +69,7 @@ export default function AdminSubcategoriesPage() {
   }
 
   const getParentName = (id: string) => {
-    return categories.find(c => c.id === id)?.name || 'Unknown Root'
+    return categories.find((c: any) => c.id === id)?.name || 'Unknown Root'
   }
 
   return (
@@ -189,7 +188,7 @@ export default function AdminSubcategoriesPage() {
                     required
                   >
                      <option value="">SELECT ROOT CATEGORY</option>
-                     {categories.map(cat => (
+                      {categories.map((cat: any) => (
                        <option key={cat.id} value={cat.id}>{cat.name.toUpperCase()}</option>
                      ))}
                   </select>

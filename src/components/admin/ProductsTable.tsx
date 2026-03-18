@@ -23,6 +23,8 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
+import { useCategories } from '@/hooks/useCategories'
+
 interface ProductsTableProps {
   products: Product[] | undefined
   isLoading: boolean
@@ -40,6 +42,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
   onToggleStatus,
   onToggleFeatured
 }) => {
+  const { data: categories } = useCategories()
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -97,7 +100,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
 
   const filteredProducts = products?.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.id.includes(searchQuery)
-    const matchesCategory = categoryFilter === 'all' || p.category.slug === categoryFilter
+    const matchesCategory = categoryFilter === 'all' || p.category?.slug === categoryFilter
     const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? p.isActive : !p.isActive)
     
     let matchesStock = true
@@ -129,9 +132,11 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
             <option value="all">All Categories</option>
-            <option value="electronics">Electronics</option>
-            <option value="clothing">Clothing</option>
-            {/* Map actual categories here */}
+            {categories?.map((cat: any) => (
+              <option key={cat.id} value={cat.slug}>
+                {cat.name}
+              </option>
+            ))}
           </select>
           <select 
             className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2874F0]/20"
@@ -225,7 +230,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                       <div className="flex items-center gap-3">
                         <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
                           <Image 
-                            src={product.images[0]} 
+                            src={product.images?.[0] || '/placeholder.png'} 
                             alt={product.name}
                             fill
                             className="object-cover"
@@ -239,7 +244,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                     </td>
                     <td className="px-6 py-4">
                       <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-none font-medium">
-                        {product.category.name}
+                        {product.category?.name || 'Uncategorized'}
                       </Badge>
                     </td>
                     <td className="px-6 py-4">
@@ -281,7 +286,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                     <td className="px-6 py-4">
                       <button 
                         onClick={() => onToggleStatus(product.id)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${product.isActive ? 'bg-[#2874F0]' : 'bg-gray-200'}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${product.isActive ? 'bg-[#2874F0]' : 'bg-gray-200'}`}
                       >
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${product.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
@@ -289,7 +294,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                     <td className="px-6 py-4 text-center">
                       <button 
                         onClick={() => onToggleFeatured(product.id)}
-                        className={`p-2 rounded-full transition-all ${product.isFeatured ? 'text-yellow-400 bg-yellow-50' : 'text-gray-300 hover:bg-gray-50 hover:text-gray-400'}`}
+                        className={`p-2 rounded-full transition-all cursor-pointer ${product.isFeatured ? 'text-yellow-400 bg-yellow-50' : 'text-gray-300 hover:bg-gray-50 hover:text-gray-400'}`}
                       >
                         <Star size={20} fill={product.isFeatured ? 'currentColor' : 'none'} />
                       </button>
@@ -298,7 +303,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                       <div className="relative inline-block text-left">
                         <button 
                           onClick={() => setOpenMenuId(openMenuId === product.id ? null : product.id)}
-                          className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400"
+                          className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 cursor-pointer"
                         >
                           <MoreVertical size={18} />
                         </button>

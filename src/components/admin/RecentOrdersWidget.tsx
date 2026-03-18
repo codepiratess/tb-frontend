@@ -69,7 +69,7 @@ export const RecentOrdersWidget: React.FC<RecentOrdersWidgetProps> = ({ orders, 
       </div>
 
       <div className="flex-1 space-y-5">
-        {orders?.slice(0, 5).map((order) => (
+        {(orders || []).slice(0, 5).map((order) => (
           <div key={order.id} className="flex items-center justify-between group">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-[#2874F0] font-bold text-xs shrink-0 group-hover:bg-[#2874F0] group-hover:text-white transition-colors">

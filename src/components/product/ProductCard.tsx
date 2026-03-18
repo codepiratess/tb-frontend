@@ -25,13 +25,13 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
   const dispatch = useDispatch()
   const isInCart = useSelector(selectIsInCart(product.id))
   const isInWishlist = useSelector(selectIsInWishlist(product.id))
-  
+
   const [isAdding, setIsAdding] = useState(false)
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    
+
     if (isInCart) return
 
     setIsAdding(true)
@@ -58,6 +58,7 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
     }
   }
 
+  console.log("product------------------>", product)
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -65,7 +66,7 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
       className="bg-white rounded-sm border border-gray-100 shadow-sm hover:shadow-lg flex flex-col h-full overflow-hidden"
     >
       <Link href={`/products/${product.slug}`} className="flex flex-col h-full relative group">
-        
+
         {/* Image Area */}
         <div className="relative aspect-square w-full overflow-hidden bg-gray-50 flex-shrink-0">
           <Image
@@ -77,7 +78,7 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
             placeholder="blur"
             blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
           />
-          
+
           {/* Wishlist Button */}
           <motion.button
             whileTap={{ scale: 0.8 }}
@@ -86,7 +87,7 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
           >
             <Heart size={18} className={isInWishlist ? "fill-accent text-accent" : ""} />
           </motion.button>
-          
+
           {/* Discount Badge */}
           {product.discount > 0 && (
             <div className="absolute top-2 left-0 bg-accent text-white text-[10px] font-bold px-2 py-0.5 shadow-sm rounded-r-full z-10">
@@ -109,7 +110,7 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
           <h3 className="text-sm font-medium text-text-primary line-clamp-2 min-h-[40px] leading-tight">
             {product.name}
           </h3>
-          
+
           {/* Rating */}
           <div className="flex items-center gap-1 mt-1 mb-2">
             <RatingStars rating={product.rating} size={12} />
@@ -133,7 +134,7 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
                 </>
               )}
             </div>
-            
+
             {product.price > 499 ? (
               <span className="text-[11px] font-medium text-success mt-1">Free Delivery</span>
             ) : (
@@ -147,7 +148,7 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
       {showAddToCart && (
         <div className="px-3 pb-3 mt-auto flex-shrink-0">
           {isInCart ? (
-            <Link 
+            <Link
               href="/cart"
               className="w-full h-9 flex items-center justify-center gap-2 border-2 border-success text-success text-sm font-medium rounded-sm hover:bg-success hover:text-white transition-colors"
             >

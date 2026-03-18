@@ -31,7 +31,15 @@ export const publicApi: AxiosInstance = axios.create({
 // Request Interceptor
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = store.getState().auth.accessToken;
+    // Try Redux first
+    let token = store.getState().auth?.accessToken;
+
+    // If no Redux token, try cookie (fallback for SSR or initial load)
+    if (!token && typeof document !== 'undefined') {
+      const match = document.cookie.match(/townbolt_token=([^;]+)/);
+      token = match?.[1] || null;
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

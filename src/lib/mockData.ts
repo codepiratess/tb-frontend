@@ -59,15 +59,29 @@ export const mockProducts = Array.from({ length: 10 }).map((_, i) => ({
   id: `prod-${i + 1}`,
   name: `Premium Product ${i + 1}`,
   slug: `premium-product-${i + 1}`,
-  sku: `TB-PRD-00${i + 1}`,
+  description: `This is a premium description for Product ${i + 1}. It has amazing features and quality materials.`,
+  shortDescription: `Brief overview of Product ${i + 1}`,
   price: 2499 + i * 500,
   originalPrice: 3999 + i * 500,
-  stock: 50 + i * 5,
+  discount: 15,
+  images: ['https://placehold.co/600x600?text=Product', 'https://placehold.co/600x600?text=Detail'],
+  category: { 
+    id: 'cat-1', 
+    name: 'Electronics', 
+    slug: 'electronics', 
+    image: 'https://placehold.co/100x100?text=Electronics',
+    productCount: 124
+  },
   categoryId: 'cat-1',
-  category: { name: 'Electronics', slug: 'electronics' },
-  status: 'active',
+  stock: 50 + i * 5,
+  rating: 4.5,
+  reviewCount: 128,
+  tags: ['premium', 'new', 'trending'],
   isFeatured: i % 3 === 0,
-  image: 'https://placehold.co/100x100?text=Product'
+  isNewArrival: true,
+  freeDelivery: true,
+  isActive: true,
+  createdAt: new Date().toISOString()
 }))
 
 export const mockCategories = [

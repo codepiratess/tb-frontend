@@ -4,13 +4,10 @@ import React, { useState } from 'react'
 import { 
   Users, 
   Search, 
-  Filter, 
-  ChevronDown, 
   MoreVertical, 
   Mail, 
   Phone, 
   Calendar, 
-  ShoppingBag, 
   IndianRupee, 
   ShieldCheck, 
   Ban, 
@@ -26,18 +23,31 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { motion, AnimatePresence } from 'framer-motion'
-import { mockCustomers } from '@/lib/mockData'
+import { useAdminUsers } from '@/hooks/useAdminUsers'
+import { format } from 'date-fns'
 
 export default function AdminUsersPage() {
   const [activeTab, setActiveTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const { data: usersData, isLoading: usersLoading } = useAdminUsers({
+    search: searchQuery || undefined,
+    page: currentPage,
+    limit: 20,
+    sortBy: 'createdAt',
+    sortOrder: 'DESC'
+  })
+
+  const users = usersData?.data || []
+  const totalUsers = usersData?.total || 0
 
   const stats = [
-    { label: 'Total Registry', value: '3,847', icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
-    { label: 'Active Today', value: '1,242', icon: UserCheck, color: 'text-green-500', bg: 'bg-green-50' },
-    { label: 'Premium Tier', value: '184', icon: Star, color: 'text-purple-500', bg: 'bg-purple-50' },
-    { label: 'Restricted', value: '12', icon: Ban, color: 'text-red-500', bg: 'bg-red-50' },
+    { label: 'Total Registry', value: totalUsers.toLocaleString(), icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
+    { label: 'Active Today', value: totalUsers.toLocaleString(), icon: UserCheck, color: 'text-green-500', bg: 'bg-green-50' },
+    { label: 'Premium Tier', value: '0', icon: Star, color: 'text-purple-500', bg: 'bg-purple-50' },
+    { label: 'Restricted', value: '0', icon: Ban, color: 'text-red-500', bg: 'bg-red-50' },
   ]
 
   return (
@@ -82,7 +92,7 @@ export default function AdminUsersPage() {
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
             <input 
               type="text" 
-              placeholder="Query by name, encrypted email or session ID..."
+              placeholder="Query by name, email or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-14 pl-14 pr-6 bg-slate-50 border border-slate-100 rounded-3xl text-sm font-bold focus:outline-none focus:ring-1 focus:ring-[#2874F0] transition-all"
@@ -115,12 +125,27 @@ export default function AdminUsersPage() {
                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Join Date</th>
                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Orders</th>
                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Engagement</th>
-                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Account Security</th>
+                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Account Status</th>
                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Moderation</th>
                </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-               {mockCustomers.map((user: any) => (
+               {usersLoading ? (
+                 Array.from({ length: 5 }).map((_, i) => (
+                   <tr key={i}>
+                     <td colSpan={7} className="px-8 py-5">
+                       <div className="h-12 bg-slate-50 rounded-2xl animate-pulse w-full" />
+                     </td>
+                   </tr>
+                 ))
+               ) : users.length === 0 ? (
+                 <tr>
+                   <td colSpan={7} className="px-8 py-16 text-center">
+                     <Users size={48} className="mx-auto text-slate-200 mb-4" />
+                     <p className="font-black text-slate-400">No customers found</p>
+                   </td>
+                 </tr>
+               ) : users.map((user: any) => (
                  <tr 
                   key={user.id} 
                   className="hover:bg-slate-50/80 transition-all cursor-pointer group"
@@ -129,10 +154,12 @@ export default function AdminUsersPage() {
                     <td className="px-8 py-5">
                        <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center text-white text-lg font-black shadow-lg shadow-slate-900/10 group-hover:scale-110 transition-transform">
-                             {user.name.charAt(0)}
+                             {(user.firstName || 'U').charAt(0)}
                           </div>
                           <div>
-                             <p className="text-sm font-black text-slate-900 group-hover:text-[#2874F0] transition-colors">{user.name}</p>
+                             <p className="text-sm font-black text-slate-900 group-hover:text-[#2874F0] transition-colors">
+                               {user.firstName} {user.lastName || ''}
+                             </p>
                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">#{user.id.substring(0, 8)}</p>
                           </div>
                        </div>
@@ -143,23 +170,27 @@ export default function AdminUsersPage() {
                              <Mail size={12} className="text-slate-300" /> {user.email}
                           </p>
                           <p className="text-xs font-bold text-slate-600 flex items-center gap-2">
-                             <Phone size={12} className="text-slate-300" /> {user.phone}
+                             <Phone size={12} className="text-slate-300" /> {user.phone || 'N/A'}
                           </p>
                        </div>
                     </td>
                     <td className="px-8 py-5 text-center">
-                       <span className="text-xs font-black text-slate-400 uppercase tracking-tighter">{user.joinedDate}</span>
+                       <span className="text-xs font-black text-slate-400 uppercase tracking-tighter">
+                         {format(new Date(user.createdAt), 'MMM dd, yyyy')}
+                       </span>
                     </td>
                     <td className="px-8 py-5 text-center">
-                       <span className="text-sm font-black text-slate-900 bg-slate-100 px-3 py-1 rounded-lg">{user.orders}</span>
+                       <span className="text-sm font-black text-slate-900 bg-slate-100 px-3 py-1 rounded-lg">
+                         {user.orderCount || 0}
+                       </span>
                     </td>
                     <td className="px-8 py-5 text-center">
-                       <span className="text-sm font-black text-[#2874F0]">₹{user.spent.toLocaleString()}</span>
+                       <span className="text-sm font-black text-[#2874F0]">₹{(user.totalSpend || 0).toLocaleString()}</span>
                     </td>
                     <td className="px-8 py-5 text-center">
                        <div className="flex justify-center">
-                          <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] ${user.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                             {user.status}
+                          <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] ${user.isActive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                             {user.isActive ? 'active' : 'inactive'}
                           </span>
                        </div>
                     </td>
@@ -210,7 +241,7 @@ export default function AdminUsersPage() {
                    <div className="absolute -bottom-16 left-10">
                       <div className="w-32 h-32 rounded-[2.5rem] bg-white p-1.5 shadow-2xl">
                          <div className="w-full h-full rounded-[2.2rem] bg-[#2874F0] flex items-center justify-center text-4xl font-black text-white shadow-inner">
-                            {selectedUser.name.charAt(0)}
+                            {(selectedUser.firstName || 'U').charAt(0)}
                          </div>
                       </div>
                    </div>
@@ -222,7 +253,9 @@ export default function AdminUsersPage() {
 
                 <div className="px-10 pt-20 pb-12 space-y-10">
                    <div>
-                      <h2 className="text-3xl font-black text-slate-900 tracking-tight">{selectedUser.name}</h2>
+                      <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                        {selectedUser.firstName} {selectedUser.lastName || ''}
+                      </h2>
                       <div className="flex items-center gap-4 mt-2">
                          <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
                             <ShieldCheck size={14} className="text-green-500" />
@@ -240,7 +273,7 @@ export default function AdminUsersPage() {
                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Lifetime Spend</p>
                          <p className="text-2xl font-black text-slate-900 flex items-center gap-1">
                             <IndianRupee size={22} className="text-green-600" />
-                            {selectedUser.spent.toLocaleString()}
+                            {(selectedUser.totalSpend || 0).toLocaleString()}
                          </p>
                          <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                             <div className="h-full bg-green-500 w-3/4" />
@@ -248,7 +281,9 @@ export default function AdminUsersPage() {
                       </div>
                       <div className="p-6 bg-slate-50/80 rounded-3xl border border-slate-100 space-y-3">
                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Order Frequency</p>
-                         <p className="text-2xl font-black text-[#2874F0]">{selectedUser.orders} <span className="text-xs text-slate-400">Purchases</span></p>
+                         <p className="text-2xl font-black text-[#2874F0]">
+                           {selectedUser.orderCount || 0} <span className="text-xs text-slate-400">Purchases</span>
+                         </p>
                          <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                             <div className="h-full bg-[#2874F0] w-1/2" />
                          </div>
@@ -260,10 +295,10 @@ export default function AdminUsersPage() {
                       <div className="space-y-3">
                          {[
                            { label: 'E-mail Delivery', val: selectedUser.email, icon: Mail },
-                           { label: 'Contact Number', val: selectedUser.phone, icon: Phone },
+                           { label: 'Contact Number', val: selectedUser.phone || 'N/A', icon: Phone },
                            { label: 'Last Active Location', val: 'New Delhi, India', icon: MapPin },
-                           { label: 'Platform Joined', val: selectedUser.joinedDate, icon: Calendar },
-                           { label: 'Recent Activity', val: '4 hours ago • Added to Cart', icon: Clock },
+                           { label: 'Platform Joined', val: format(new Date(selectedUser.createdAt), 'MMM dd, yyyy'), icon: Calendar },
+                           { label: 'Recent Activity', val: 'Active • System Logged', icon: Clock },
                          ].map((item, i) => (
                            <div key={i} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-[#2874F0] transition-colors group">
                               <div className="flex items-center gap-3">
