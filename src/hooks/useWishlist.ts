@@ -1,56 +1,116 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSelector } from 'react-redux';
-import { toast } from 'react-hot-toast';
-import api from '@/lib/api';
-import { API_ENDPOINTS } from '@/constants';
-import { RootState } from '@/store';
-import { handleApiError } from '@/lib/errorHandler';
+'use client'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useDispatch, useSelector } from 'react-redux'
+import api from '@/lib/api'
+import {
+  addToWishlist,
+  removeFromWishlist,
+  setWishlistFromServer,
+  clearWishlist,
+} from '@/store/slices/wishlistSlice'
+import { RootState } from '@/store'
+import toast from 'react-hot-toast'
+import type { Product } from '@/types'
 
-export function useWishlist() {
-  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+// Fetch wishlist from server
+export const useServerWishlist = () => {
+  const dispatch = useDispatch()
+  const accessToken = useSelector((s: RootState) => s.auth.accessToken)
 
   return useQuery({
     queryKey: ['wishlist'],
     queryFn: async () => {
-      const { data } = await api.get(API_ENDPOINTS.WISHLIST.GET);
-      return data;
+      const res = await api.get('/wishlist')
+      const data = res.data?.data
+
+      if (data?.products) {
+        dispatch(setWishlistFromServer(data.products))
+      }
+
+      return data
     },
     enabled: !!accessToken,
-  });
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  })
 }
 
-export function useAddToWishlist() {
-  const queryClient = useQueryClient();
+// Add to wishlist
+export const useAddToWishlist = () => {
+  const queryClient = useQueryClient()
+  const dispatch = useDispatch()
+  const accessToken = useSelector((s: RootState) => s.auth.accessToken)
+
+  return useMutation({
+    mutationFn: async (product: Product) => {
+      dispatch(addToWishlist(product))
+      if (!accessToken) return null
+      const res = await api.post(`/wishlist/${product.id}`)
+      return res.data?.data
+    },
+    onSuccess: (data) => {
+      if (data?.products) {
+        dispatch(setWishlistFromServer(data.products))
+      }
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] })
+      toast.success('Added to wishlist! ❤️')
+    },
+    onError: (_, product) => {
+      dispatch(removeFromWishlist(product.id))
+      toast.error('Failed to add to wishlist')
+    },
+  })
+}
+
+// Remove from wishlist
+export const useRemoveFromWishlist = () => {
+  const queryClient = useQueryClient()
+  const dispatch = useDispatch()
+  const accessToken = useSelector((s: RootState) => s.auth.accessToken)
 
   return useMutation({
     mutationFn: async (productId: string) => {
-      const { data } = await api.post(API_ENDPOINTS.WISHLIST.ADD(productId));
-      return data;
+      dispatch(removeFromWishlist(productId))
+      if (!accessToken) return null
+      const res = await api.delete(`/wishlist/${productId}`)
+      return res.data?.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wishlist'] });
-      toast.success('Added to wishlist');
+    onSuccess: (data) => {
+      if (data?.products) {
+        dispatch(setWishlistFromServer(data.products))
+      }
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] })
+      toast.success('Removed from wishlist')
     },
-    onError: (error: any) => {
-      toast.error(handleApiError(error));
-    },
-  });
+  })
 }
 
-export function useRemoveFromWishlist() {
-  const queryClient = useQueryClient();
+// Sync wishlist on login
+export const useSyncWishlistOnLogin = () => {
+  const dispatch = useDispatch()
+  const queryClient = useQueryClient()
+  const localItems = useSelector((s: RootState) => s.wishlist.items)
 
   return useMutation({
-    mutationFn: async (productId: string) => {
-      const { data } = await api.delete(API_ENDPOINTS.WISHLIST.REMOVE(productId));
-      return data;
+    mutationFn: async () => {
+      if (localItems.length > 0) {
+        const syncRes = await api.post('/wishlist/sync', { 
+          productIds: localItems.map(p => p.id) 
+        })
+        return syncRes.data?.data
+      }
+
+      const res = await api.get('/wishlist')
+      return res.data?.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wishlist'] });
-      toast.success('Removed from wishlist');
+    onSuccess: (data) => {
+      if (data?.products) {
+        dispatch(setWishlistFromServer(data.products))
+        queryClient.invalidateQueries({ queryKey: ['wishlist'] })
+      }
     },
-    onError: (error: any) => {
-      toast.error(handleApiError(error));
+    onError: (error) => {
+      console.error('Wishlist sync failed:', error)
     },
-  });
+  })
 }

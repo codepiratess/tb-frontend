@@ -13,6 +13,9 @@ const wishlistSlice = createSlice({
   name: 'wishlist',
   initialState,
   reducers: {
+    setWishlistFromServer: (state, action: PayloadAction<Product[]>) => {
+      state.items = action.payload || []
+    },
     addToWishlist: (state, action: PayloadAction<Product>) => {
       const existingItem = state.items.find((item) => item.id === action.payload.id)
       if (!existingItem) {
@@ -28,5 +31,10 @@ const wishlistSlice = createSlice({
   },
 })
 
-export const { addToWishlist, removeFromWishlist, clearWishlist } = wishlistSlice.actions
+export const { 
+  setWishlistFromServer, 
+  addToWishlist, 
+  removeFromWishlist, 
+  clearWishlist 
+} = wishlistSlice.actions
 export default wishlistSlice.reducer

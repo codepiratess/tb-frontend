@@ -1,20 +1,18 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Heart, ShoppingCart, Check } from 'lucide-react'
-import { useDispatch, useSelector } from 'react-redux'
-import toast from 'react-hot-toast'
+import { useSelector } from 'react-redux'
 import { Product } from '../../types'
 import { formatPrice } from '../../lib/utils'
-import { RootState } from '../../store'
-import { addToCart } from '../../store/slices/cartSlice'
-import { addToWishlist, removeFromWishlist } from '../../store/slices/wishlistSlice'
 import { RatingStars } from '../ui/RatingStars'
 import { selectIsInCart } from '../../store/selectors/cartSelectors'
 import { selectIsInWishlist } from '../../store/selectors/wishlistSelectors'
+import { useAddToCart } from '@/hooks/useCart'
+import { useAddToWishlist, useRemoveFromWishlist } from '@/hooks/useWishlist'
 
 interface ProductCardProps {
   product: Product
@@ -22,26 +20,19 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, showAddToCart = true }: ProductCardProps) {
-  const dispatch = useDispatch()
   const isInCart = useSelector(selectIsInCart(product.id))
   const isInWishlist = useSelector(selectIsInWishlist(product.id))
 
-  const [isAdding, setIsAdding] = useState(false)
+  const addToCartMutation = useAddToCart()
+  const addToWishlistMutation = useAddToWishlist()
+  const removeFromWishlistMutation = useRemoveFromWishlist()
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
     if (isInCart) return
-
-    setIsAdding(true)
-    setTimeout(() => {
-      dispatch(addToCart({ product, quantity: 1 }))
-      setIsAdding(false)
-      toast.success('Added to cart!', {
-        icon: <ShoppingCart className="w-5 h-5 text-primary" />,
-      })
-    }, 500) // mock network delay
+    addToCartMutation.mutate({ product, quantity: 1 })
   }
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
@@ -49,16 +40,12 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
     e.stopPropagation()
 
     if (isInWishlist) {
-      dispatch(removeFromWishlist(product.id))
+      removeFromWishlistMutation.mutate(product.id)
     } else {
-      dispatch(addToWishlist(product))
-      toast.success('Added to wishlist!', {
-        icon: <Heart className="w-5 h-5 text-accent fill-accent" />,
-      })
+      addToWishlistMutation.mutate(product)
     }
   }
 
-  console.log("product------------------>", product)
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -75,8 +62,7 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
             fill
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
-            placeholder="blur"
-            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+            unoptimized
           />
 
           {/* Wishlist Button */}
@@ -157,10 +143,10 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
           ) : (
             <button
               onClick={handleAddToCart}
-              disabled={product.stock === 0 || isAdding}
+              disabled={product.stock === 0 || addToCartMutation.isPending}
               className="w-full h-9 bg-primary text-white text-sm font-medium flex items-center justify-center rounded-sm hover:bg-primary-dark transition-colors disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
             >
-              {isAdding ? (
+              {addToCartMutation.isPending ? (
                 <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
               ) : (
                 'Add to Cart'

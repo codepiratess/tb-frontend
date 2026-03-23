@@ -1,29 +1,21 @@
 'use client'
 
 import React from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, Trash2, ShoppingCart } from 'lucide-react'
-import { RootState } from '../../../store'
-import { removeFromWishlist } from '../../../store/slices/wishlistSlice'
-import { addToCart } from '../../../store/slices/cartSlice'
-import { ProductCard } from '../../../components/product/ProductCard'
-import { Product } from '../../../types'
+import { Heart, Trash2 } from 'lucide-react'
+import { RootState } from '@/store'
+import { ProductCard } from '@/components/product/ProductCard'
+import { useRemoveFromWishlist } from '@/hooks/useWishlist'
 
 export default function WishlistPage() {
   const { items } = useSelector((state: RootState) => state.wishlist)
-  const dispatch = useDispatch()
+  const removeFromWishlistMutation = useRemoveFromWishlist()
 
   const handleRemove = (id: string, e: React.MouseEvent) => {
     e.preventDefault()
-    dispatch(removeFromWishlist(id))
-  }
-
-  const handleMoveToCart = (product: Product, e: React.MouseEvent) => {
-    e.preventDefault()
-    dispatch(addToCart({ product, quantity: 1 }))
-    dispatch(removeFromWishlist(product.id))
+    removeFromWishlistMutation.mutate(id)
   }
 
   return (
@@ -61,17 +53,13 @@ export default function WishlistPage() {
                   transition={{ duration: 0.2 }}
                   className="relative group"
                 >
-                  {/* Reuse ProductCard but add overlay actions if needed or let ProductCard handle it.
-                      Actually, ProductCard already has wishlist toggle. But on wishlist page, clicking heart should remove. 
-                      Since it's full fledged, we can just render ProductCard, but maybe add a "Move to cart" specific button or rely on internal behavior.
-                      ProductCard handles 'Add to Cart' natively. We just need to make sure the heart button works properly (it removes from wishlist if true).
-                      Let's just use the ProductCard, it's elegant and consistent. */}
                   <ProductCard product={product} />
                   
-                  {/* Delete Overlay Button (optional extra, but good for UX) */}
+                  {/* Delete Overlay Button */}
                   <button 
                     onClick={(e) => handleRemove(product.id, e)}
-                    className="absolute top-2 left-2 z-20 w-8 h-8 bg-white/80 backdrop-blur text-gray-500 hover:text-error rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                    disabled={removeFromWishlistMutation.isPending}
+                    className="absolute top-2 left-2 z-20 w-8 h-8 bg-white/80 backdrop-blur text-gray-500 hover:text-error rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                     title="Remove from wishlist"
                   >
                     <Trash2 size={16} />

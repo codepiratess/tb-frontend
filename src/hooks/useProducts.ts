@@ -78,17 +78,65 @@ export function useNewArrivals() {
   });
 }
 
-export function useSearchProducts(query: string) {
+export const useSearchProducts = (
+  query: string
+) => {
   return useQuery({
-    queryKey: ['products', 'search', query],
+    queryKey: [
+      'products', 'search', query
+    ],
     queryFn: async () => {
-      const { data } = await publicApi.get('/products/search', { params: { q: query } });
-      return data.data || data;
+      if (!query || 
+          query.trim().length < 2) {
+        return { 
+          data: [], 
+          total: 0, 
+          suggestions: [] 
+        }
+      }
+      try {
+        const res = await publicApi.get(
+          '/products/search',
+          { 
+            params: { 
+              q: query.trim(), 
+              limit: 8 
+            } 
+          }
+        )
+        
+        // NestJS TransformInterceptor 
+        // wraps in { success, data, ... }
+        // The actual search result is 
+        // inside res.data.data
+        const result = res.data?.data 
+          || res.data 
+          || { data: [], total: 0,
+               suggestions: [] }
+        
+        return {
+          data: result.data || [],
+          total: result.total || 0,
+          suggestions: 
+            result.suggestions || [],
+        }
+      } catch (error) {
+        console.error(
+          'Search API error:', error
+        )
+        return { 
+          data: [], 
+          total: 0, 
+          suggestions: [] 
+        }
+      }
     },
-    enabled: query.length >= 2,
-    staleTime: 2 * 60 * 1000,
-  });
+    enabled: query.trim().length >= 2,
+    staleTime: 30 * 1000,
+    retry: 1,
+  })
 }
+
 
 // Admin hooks
 export function useAdminProducts(filters: ProductFilters = {}) {

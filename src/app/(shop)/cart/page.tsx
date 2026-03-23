@@ -4,19 +4,22 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { ShoppingCart, Minus, Plus, Trash2, Heart } from 'lucide-react'
 import { RootState } from '../../../store'
-import { removeFromCart, updateQuantity, clearCart } from '../../../store/slices/cartSlice'
-import { addToWishlist } from '../../../store/slices/wishlistSlice'
 import { formatPrice } from '../../../lib/utils'
 import { Product } from '../../../types'
+import { useRemoveFromCart, useUpdateCartItem } from '@/hooks/useCart'
+import { useAddToWishlist } from '@/hooks/useWishlist'
 
 export default function CartPage() {
-  const dispatch = useDispatch()
   const { items } = useSelector((state: RootState) => state.cart)
   
   const [selectedItems, setSelectedItems] = useState<string[]>(items.map(i => i.product.id))
+
+  const removeFromCartMutation = useRemoveFromCart()
+  const updateCartItemMutation = useUpdateCartItem()
+  const addToWishlistMutation = useAddToWishlist()
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -36,21 +39,21 @@ export default function CartPage() {
 
   const handleRemoveSelected = () => {
     selectedItems.forEach(id => {
-      dispatch(removeFromCart(id))
+      removeFromCartMutation.mutate(id)
     })
     setSelectedItems([])
   }
 
   const handleSaveForLater = (product: Product) => {
-    dispatch(addToWishlist(product))
-    dispatch(removeFromCart(product.id))
+    addToWishlistMutation.mutate(product)
+    removeFromCartMutation.mutate(product.id)
   }
 
   // Calculate totals for selected items only
   const selectedCartItems = items.filter(item => selectedItems.includes(item.product.id))
   const totalItems = selectedCartItems.reduce((acc, item) => acc + item.quantity, 0)
-  const totalOriginalPrice = selectedCartItems.reduce((acc, item) => acc + (item.product.originalPrice * item.quantity), 0)
-  const totalPrice = selectedCartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
+  const totalOriginalPrice = selectedCartItems.reduce((acc, item) => acc + (Number(item.product.originalPrice || item.product.price) * item.quantity), 0)
+  const totalPrice = selectedCartItems.reduce((acc, item) => acc + (Number(item.product.price) * item.quantity), 0)
   const discountTotal = totalOriginalPrice - totalPrice
   const deliveryCharges = totalPrice > 499 ? 0 : (totalItems > 0 ? 40 : 0)
   const finalTotal = totalPrice + deliveryCharges
@@ -64,7 +67,6 @@ export default function CartPage() {
           className="bg-white p-8 rounded-sm shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center w-full max-w-2xl"
         >
           <div className="w-48 h-48 mb-6 text-gray-200">
-             {/* Mock SVG for shopping cart illustration */}
              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty!</h2>
@@ -123,7 +125,6 @@ export default function CartPage() {
                   exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
                   className="p-4 md:p-6 flex flex-col sm:flex-row gap-4 md:gap-6 bg-white overflow-hidden relative"
                 >
-                  {/* Select Checkbox */}
                   <div className="flex sm:block shrink-0 mt-2">
                     <input 
                       type="checkbox" 
@@ -133,7 +134,6 @@ export default function CartPage() {
                     />
                   </div>
 
-                  {/* Image */}
                   <div className="w-24 h-24 shrink-0 relative bg-gray-50 rounded-sm overflow-hidden border border-gray-100 group">
                     <Link href={`/products/${item.product.slug}`}>
                       <Image 
@@ -141,11 +141,11 @@ export default function CartPage() {
                         alt={item.product.name}
                         fill
                         className="object-contain p-2 mix-blend-multiply group-hover:scale-105 transition-transform"
+                        unoptimized
                       />
                     </Link>
                   </div>
 
-                  {/* Details */}
                   <div className="flex-1 flex flex-col md:flex-row gap-4 justify-between">
                     <div className="flex flex-col">
                       <Link href={`/products/${item.product.slug}`} className="hover:text-primary transition-colors">
@@ -174,14 +174,12 @@ export default function CartPage() {
                       </div>
                     </div>
 
-                    {/* Quantity & Actions */}
                     <div className="flex flex-row md:flex-col justify-between items-center sm:items-start md:items-end gap-4 min-w-[200px]">
                       
-                      {/* Quantity Control */}
                       <div className="flex items-center divide-x border border-gray-300 rounded-sm overflow-hidden bg-white">
                         <button 
-                          onClick={() => dispatch(updateQuantity({ id: item.product.id, quantity: Math.max(1, item.quantity - 1) }))}
-                          disabled={item.quantity <= 1}
+                          onClick={() => updateCartItemMutation.mutate({ productId: item.product.id, quantity: Math.max(1, item.quantity - 1) })}
+                          disabled={item.quantity <= 1 || updateCartItemMutation.isPending}
                           className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 font-bold"
                         >
                           <Minus size={14} />
@@ -190,15 +188,14 @@ export default function CartPage() {
                           {item.quantity}
                         </div>
                         <button 
-                          onClick={() => dispatch(updateQuantity({ id: item.product.id, quantity: Math.min(item.product.stock, item.quantity + 1) }))}
-                          disabled={item.quantity >= item.product.stock}
+                          onClick={() => updateCartItemMutation.mutate({ productId: item.product.id, quantity: Math.min(item.product.stock, item.quantity + 1) })}
+                          disabled={item.quantity >= item.product.stock || updateCartItemMutation.isPending}
                           className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 font-bold"
                         >
                           <Plus size={14} />
                         </button>
                       </div>
 
-                      {/* Links */}
                       <div className="flex items-center gap-4 text-sm font-bold">
                         <button 
                           onClick={() => handleSaveForLater(item.product)}
@@ -207,7 +204,7 @@ export default function CartPage() {
                           <Heart size={16} /> Save for later
                         </button>
                         <button 
-                          onClick={() => dispatch(removeFromCart(item.product.id))}
+                          onClick={() => removeFromCartMutation.mutate(item.product.id)}
                           className="text-gray-900 hover:text-error transition-colors flex items-center gap-1 uppercase"
                         >
                           <Trash2 size={16} /> Remove

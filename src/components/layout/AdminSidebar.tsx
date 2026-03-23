@@ -8,7 +8,7 @@ import { useDispatch } from 'react-redux'
 import { 
   LayoutDashboard, Package, ShoppingBag, Tag, 
   BarChart3, Settings, LogOut, ChevronLeft, 
-  Plus, ExternalLink, Zap
+  Plus, ExternalLink, Zap, Image as ImageIcon
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { logout } from '../../store/slices/authSlice'
@@ -67,11 +67,17 @@ export function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSidebarProps)
       href: '/admin/categories' 
     },
     { 
+      label: 'Hero Banners', 
+      icon: ImageIcon, 
+      href: '/admin/banners' 
+    },
+    { 
       label: 'Analytics', 
       icon: BarChart3, 
       href: '/admin/analytics' 
     }
   ]
+
 
   const isRouteActive = (href: string, exact = false) => {
     if (exact) return pathname === href

@@ -98,6 +98,7 @@ export function DealOfTheDay() {
             src={dealProduct.images[0] || 'https://picsum.photos/400'}
             alt={dealProduct.name}
             fill
+            unoptimized
             className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
           />
           <div className="absolute top-4 left-4 bg-accent text-white px-3 py-1 text-sm font-bold rounded-full shadow-md z-10">

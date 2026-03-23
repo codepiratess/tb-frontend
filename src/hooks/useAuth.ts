@@ -8,25 +8,48 @@ import { setUser, setToken, logout, setLoading } from '@/store/slices/authSlice'
 import { RootState } from '@/store'
 import { handleApiError } from '@/lib/errorHandler'
 import { setAuthCookies, clearAuthCookies } from '@/lib/auth-cookies'
+import { useSyncCartOnLogin } from './useCart'
+import { useSyncWishlistOnLogin } from './useWishlist'
 
 export function useLogin() {
   const dispatch = useDispatch()
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl')
+  const syncCart = useSyncCartOnLogin()
+  const syncWishlist = useSyncWishlistOnLogin()
 
   return useMutation({
     mutationFn: async (dto: any) => {
       const { data } = await publicApi.post(API_ENDPOINTS.AUTH.LOGIN, dto)
-      return data // Make sure this matches backend: { data: { user, accessToken } }
+      return data.data || data
     },
-    onSuccess: (response) => {
-      const { user, accessToken } = response.data
+    onSuccess: async (data) => {
+      const { user, accessToken } = data
+      
+      // 1. Set auth state immediately
       setAuthCookies(accessToken, user.role)
       dispatch(setUser(user))
       dispatch(setToken(accessToken))
-      toast.success(`Welcome back, ${user.firstName}! 👋`)
       
+      // 2. Show welcome toast
+      toast.success(`Welcome back, ${user.firstName}! 👋`)
+
+      // 3. Sync cart from server (merges any local items with server)
+      try {
+        await syncCart.mutateAsync()
+      } catch (e) {
+        console.error('Cart sync error:', e)
+      }
+
+      // 4. Sync wishlist from server
+      try {
+        await syncWishlist.mutateAsync()
+      } catch (e) {
+        console.error('Wishlist sync error:', e)
+      }
+      
+      // 5. Redirect
       if (user.role === 'admin') {
         router.push('/admin')
       } else {
@@ -175,6 +198,7 @@ export function useResetPassword() {
     },
   })
 }
+
 export function useAuth() {
   const { user, accessToken, loading } = useSelector((state: RootState) => state.auth)
   const logoutMutation = useLogout()

@@ -61,6 +61,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                 fill 
                 className="object-contain p-1"
                 sizes="70px"
+                unoptimized
               />
             </button>
           ))}
@@ -78,6 +79,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
             className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, 500px"
             priority
+            unoptimized
           />
           
           {/* Mobile Swipe indicators / Nav arrows */}
@@ -143,6 +145,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                   className="object-contain"
                   sizes="100vw"
                   quality={100}
+                  unoptimized
                 />
               </div>
 
@@ -170,6 +173,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                     alt={`Thumb ${idx + 1}`} 
                     fill 
                     className="object-contain p-1"
+                    unoptimized
                   />
                 </button>
               ))}

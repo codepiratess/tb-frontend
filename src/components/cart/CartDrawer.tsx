@@ -4,16 +4,15 @@ import React, { useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { X, Trash2, ShoppingCart, Minus, Plus } from 'lucide-react'
-import { RootState, AppDispatch } from '../../store'
-import { removeFromCart, updateQuantity } from '../../store/slices/cartSlice'
+import { RootState } from '../../store'
 import { selectCartTotal, selectCartCount } from '../../store/selectors/cartSelectors'
 import { useCartDrawer } from '../../store/useCartDrawer'
 import { formatPrice } from '../../lib/utils'
+import { useRemoveFromCart, useUpdateCartItem } from '@/hooks/useCart'
 
 export function CartDrawer() {
-  const dispatch = useDispatch<AppDispatch>()
   const { items } = useSelector((state: RootState) => state.cart)
   const cartTotal = useSelector(selectCartTotal)
   const cartCount = useSelector(selectCartCount)
@@ -21,7 +20,10 @@ export function CartDrawer() {
   const isOpen = useCartDrawer((state) => state.isOpen)
   const closeCart = useCartDrawer((state) => state.closeCart)
 
-  // Calculate savings (mock logic for now, assumes originalPrice is available)
+  const removeFromCartMutation = useRemoveFromCart()
+  const updateCartItemMutation = useUpdateCartItem()
+
+  // Calculate savings
   const totalOriginalPrice = items.reduce((total, item) => total + (item.product.originalPrice || item.product.price) * item.quantity, 0)
   const savings = totalOriginalPrice - cartTotal
 
@@ -41,14 +43,14 @@ export function CartDrawer() {
     }
   }, [isOpen, closeCart])
 
-  const handleUpdateQuantity = (id: string, newQuantity: number) => {
+  const handleUpdateQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity >= 1 && newQuantity <= 10) {
-      dispatch(updateQuantity({ id, quantity: newQuantity }))
+      updateCartItemMutation.mutate({ productId, quantity: newQuantity })
     }
   }
 
-  const handleRemove = (id: string) => {
-    dispatch(removeFromCart(id))
+  const handleRemove = (productId: string) => {
+    removeFromCartMutation.mutate(productId)
   }
 
   return (
@@ -124,6 +126,7 @@ export function CartDrawer() {
                           width={80}
                           height={80}
                           className="object-contain w-full h-full p-1"
+                          unoptimized
                         />
                       </Link>
 
@@ -151,7 +154,7 @@ export function CartDrawer() {
                           <div className="flex items-center border border-gray-200 rounded-sm">
                             <button
                               onClick={() => handleUpdateQuantity(item.product.id, item.quantity - 1)}
-                              disabled={item.quantity <= 1}
+                              disabled={item.quantity <= 1 || updateCartItemMutation.isPending}
                               className="w-7 h-7 flex items-center justify-center text-text-secondary hover:bg-gray-50 disabled:opacity-50 transition-colors"
                             >
                               <Minus size={14} />
@@ -161,7 +164,7 @@ export function CartDrawer() {
                             </span>
                             <button
                               onClick={() => handleUpdateQuantity(item.product.id, item.quantity + 1)}
-                              disabled={item.quantity >= Math.min(10, item.product.stock)}
+                              disabled={item.quantity >= Math.min(10, item.product.stock) || updateCartItemMutation.isPending}
                               className="w-7 h-7 flex items-center justify-center text-text-secondary hover:bg-gray-50 disabled:opacity-50 transition-colors"
                             >
                               <Plus size={14} />
@@ -173,7 +176,8 @@ export function CartDrawer() {
                       {/* Remove */}
                       <button
                         onClick={() => handleRemove(item.product.id)}
-                        className="absolute top-3 right-3 text-gray-300 hover:text-accent transition-colors"
+                        disabled={removeFromCartMutation.isPending}
+                        className="absolute top-3 right-3 text-gray-300 hover:text-accent transition-colors disabled:opacity-50"
                         title="Remove item"
                       >
                         <Trash2 size={16} />

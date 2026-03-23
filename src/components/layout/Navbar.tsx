@@ -8,7 +8,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { 
   Zap, Search, ChevronDown, Heart, ShoppingCart, Menu, 
   Smartphone, Monitor, Shirt, Home, Sparkles, Trophy, 
-  BookOpen, Puzzle, ShoppingBasket, Sofa, Tv, Tag
+  BookOpen, Puzzle, ShoppingBasket, Sofa, Tv, Tag, Package
 } from 'lucide-react'
 import { selectCartCount } from '../../store/selectors/cartSelectors'
 import { selectWishlistCount } from '../../store/selectors/wishlistSelectors'
@@ -54,8 +54,16 @@ export function Navbar() {
   const [showDropdown, setShowDropdown] = useState(false)
   
   const debouncedSearch = useDebounce(searchQuery, 400)
-  const { data: searchResults, isLoading: isSearchLoading } = useSearchProducts(debouncedSearch)
+  const { 
+    data: searchData, 
+    isLoading: searchLoading, 
+    isFetching: searchFetching 
+  } = useSearchProducts(debouncedSearch)
   const { data: categories } = useCategories()
+
+  const searchProducts = searchData?.data || []
+  const searchSuggestions = searchData?.suggestions || []
+  const isSearching = searchLoading || searchFetching
 
   useEffect(() => {
     const handleScroll = () => {
@@ -118,50 +126,119 @@ export function Navbar() {
             </form>
             
             <AnimatePresence>
-              {showDropdown && debouncedSearch && (
-                <>
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-40 bg-black/10"
-                    onClick={() => setShowDropdown(false)}
-                  />
-                    <motion.div
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 5 }}
-                      className="absolute top-12 left-0 w-full bg-white rounded-sm shadow-xl z-50 overflow-hidden border border-gray-100"
-                    >
-                      {isSearchLoading ? (
-                        <div className="p-4 text-center text-sm text-gray-400 italic">Searching...</div>
-                      ) : (searchResults?.data?.length || 0) > 0 ? (
-                        <div className="max-h-80 overflow-y-auto">
-                          {searchResults?.data.slice(0, 5).map((product: any) => (
-                            <Link 
-                              key={product.id} 
-                              href={`/products/${product.slug}`}
-                              className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
-                              onClick={() => {
+              {showDropdown && debouncedSearch.trim().length >= 2 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 5 }}
+                  className="absolute top-full left-0 right-0 bg-white shadow-xl border-t-0 border border-gray-100 rounded-b-lg z-[200] max-h-[400px] overflow-y-auto mt-1"
+                >
+                  {isSearching ? (
+                    <div className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
+                        <div className="w-4 h-4 border-2 border-[#2874F0] border-t-transparent rounded-full animate-spin" />
+                        Searching for "{debouncedSearch}"
+                      </div>
+                    </div>
+                  ) : searchProducts.length === 0 && searchSuggestions.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <Search size={32} className="mx-auto mb-3 text-gray-200" />
+                      <p className="text-sm font-medium text-gray-500">
+                        No results for "{debouncedSearch}"
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Try different keywords
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Category suggestions */}
+                      {searchSuggestions.length > 0 && (
+                        <div className="border-b border-gray-50 py-1">
+                          {searchSuggestions.map((s: any, i: number) => (
+                            <button
+                              key={i}
+                              onMouseDown={(e) => {
+                                e.preventDefault()
+                                router.push(`/category/${s.slug}`)
                                 setShowDropdown(false)
                                 setSearchQuery('')
                               }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left"
                             >
-                              <Search size={16} className="text-gray-400 flex-shrink-0" />
-                              <div className="flex flex-col">
-                                <span className="text-sm text-gray-900 font-bold line-clamp-1">{product.name}</span>
-                                <span className="text-[10px] text-gray-400 font-black uppercase">{product.category?.name}</span>
-                              </div>
-                            </Link>
+                              <Tag size={14} className="text-[#2874F0] shrink-0" />
+                              <span className="text-sm text-gray-600">
+                                in category{' '}
+                                <strong className="text-gray-900">{s.name}</strong>
+                              </span>
+                            </button>
                           ))}
                         </div>
-                      ) : (
-                        <div className="p-4 text-center text-sm text-gray-400">
-                          No results found
-                        </div>
                       )}
-                    </motion.div>
-                </>
+
+                      {/* Product results */}
+                      {searchProducts.length > 0 && (
+                        <>
+                          <div className="px-4 py-2 border-b border-gray-50">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                              Products
+                            </p>
+                          </div>
+                          {searchProducts.map((product: any) => (
+                            <button
+                              key={product.id}
+                              onMouseDown={(e) => {
+                                e.preventDefault()
+                                router.push(`/products/${product.slug}`)
+                                setShowDropdown(false)
+                                setSearchQuery('')
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0"
+                            >
+                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
+                                {product.images?.[0] ? (
+                                  <img
+                                    src={product.images[0]}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                    <Package size={14} className="text-gray-300" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-gray-900 font-medium line-clamp-1">
+                                  {product.name}
+                                </p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-xs text-gray-400">
+                                    {product.category?.name}
+                                  </span>
+                                  <span className="text-xs font-bold text-[#2874F0]">
+                                    ₹{product.price?.toLocaleString('en-IN')}
+                                  </span>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+
+                          <button
+                            onMouseDown={(e) => {
+                              e.preventDefault()
+                              router.push(`/search?q=${encodeURIComponent(debouncedSearch)}`)
+                              setShowDropdown(false)
+                            }}
+                            className="w-full px-4 py-3 text-sm text-[#2874F0] font-semibold text-center hover:bg-blue-50 border-t border-gray-100 transition-colors"
+                          >
+                            See all results for "{debouncedSearch}" →
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                </motion.div>
               )}
             </AnimatePresence>
           </div>

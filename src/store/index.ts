@@ -10,27 +10,26 @@ import {
   REGISTER,
 } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
+import authReducer from './slices/authSlice'
 import cartReducer from './slices/cartSlice'
 import wishlistReducer from './slices/wishlistSlice'
-import authReducer from './slices/authSlice'
 
-const rootReducer = combineReducers({
-  cart: cartReducer,
-  wishlist: wishlistReducer,
-  auth: authReducer,
-})
-
-const persistConfig = {
-  key: 'root',
-  version: 1,
+// Only auth is persisted locally
+// Cart + wishlist come from backend
+const authPersistConfig = {
+  key: 'townbolt_auth',
   storage,
-  whitelist: ['cart', 'wishlist', 'auth'], // persist these slices completely
+  whitelist: ['user', 'accessToken', 'role', 'isAuthenticated'],
 }
 
-const persistedReducer = persistReducer(persistConfig, rootReducer)
+const rootReducer = combineReducers({
+  auth: persistReducer(authPersistConfig, authReducer),
+  cart: cartReducer, // NOT persisted — comes from server
+  wishlist: wishlistReducer, // NOT persisted — comes from server
+})
 
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {

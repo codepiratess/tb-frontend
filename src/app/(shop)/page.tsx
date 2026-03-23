@@ -28,6 +28,15 @@ export default async function HomePage() {
       },
     }),
     queryClient.prefetchQuery({
+      queryKey: ['banners', { onlyActive: true }],
+      queryFn: async () => {
+        const res = await fetch(`${apiUrl}/banners?onlyActive=true`, { cache: 'no-store' })
+        if (!res.ok) return []
+        const json = await res.json()
+        return json.data || json || []
+      },
+    }),
+    queryClient.prefetchQuery({
       queryKey: ['products', 'featured'],
       queryFn: async () => {
         const res = await fetch(`${apiUrl}/products/featured`, { cache: 'no-store' })
