@@ -46,7 +46,7 @@ export default function CheckoutPage() {
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
 
-  const createOrderMutation = useCreateOrder()
+  const createOrderMutation = useCreateOrder({ autoRedirect: false })
   const { initiatePayment, isLoading: isPaying } = useRazorpayPayment()
 
   const { register, handleSubmit, formState: { errors } } = useForm<AddressFormValues>({
@@ -79,38 +79,76 @@ export default function CheckoutPage() {
     setActiveStep(3)
   }
 
-  const handleCreateOrder = async (method: PaymentMethod) => {
-    const orderItems = items.map(item => ({
+  const onPlaceOrder = async () => {
+  if (!address) {
+    toast.error('Please add delivery address')
+    setActiveStep(2)
+    return
+  }
+
+  if (items.length === 0) {
+    toast.error('Your cart is empty')
+    router.push('/cart')
+    return
+  }
+
+  const orderPayload = {
+    items: items.map(item => ({
       productId: item.product.id,
-      quantity: item.quantity
-    }));
+      quantity: item.quantity,
+    })),
+    shippingAddress: {
+      fullName: address.fullName,
+      phone: address.phone,
+      addressLine1: address.addressLine1,
+      addressLine2: address.addressLine2 
+        || undefined,
+      landmark: address.addressLine2 
+        || undefined,
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+      addressType: address.type 
+        || 'home',
+    },
+    paymentMethod: paymentMethod,
+    notes: '',
+  }
 
+  if (paymentMethod === 'cod') {
+    // COD: place order directly
     try {
-      const order = await createOrderMutation.mutateAsync({
-        items: orderItems,
-        addressId: 'LOCAL_FORM_SUBMISSION', // In a real app, user selects from saved addresses or we save this first
-        paymentMethod: method,
-        addressSnapshot: address, // Custom handling for new address
-      });
-
-      setCreatedOrderId(order.id);
-      setOrderNumber(order.orderNumber);
-
-      if (method === PaymentMethod.COD) {
-        dispatch(clearCart());
-        setActiveStep(5); // Success step
-      } else {
-        setActiveStep(4); // Payment step
+      const newOrder = await createOrderMutation.mutateAsync(orderPayload)
+      if (newOrder?.id) {
+        dispatch(clearCart())
+        router.push(`/orders/${newOrder.id}?success=true`)
       }
-    } catch (err: any) {
-      // Error handled by mutation hook
+    } catch (error) {
+      console.error('Order error:', error)
+    }
+  } else {
+    // Razorpay: place order first, then open payment modal
+    try {
+      const newOrder = await createOrderMutation.mutateAsync(orderPayload)
+      if (newOrder?.id) {
+        await initiatePayment(
+          newOrder.id,
+          newOrder.orderNumber,
+          {
+            name: user?.firstName 
+              ? `${user.firstName} ${user.lastName || ''}`
+              : address.fullName,
+            email: user?.email || '',
+            phone: address.phone,
+          }
+        )
+      }
+    } catch (error) {
+      console.error('Order error:', error)
     }
   }
+}
 
-  const handlePay = async () => {
-    if (!createdOrderId || !orderNumber) return;
-    await initiatePayment(createdOrderId, finalTotal, orderNumber);
-  }
 
   if (activeStep === 5) {
     return (
@@ -296,18 +334,24 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex gap-4 w-full md:w-auto">
                       <Button 
-                        onClick={() => handleCreateOrder(PaymentMethod.COD)}
+                        onClick={() => {
+                          setPaymentMethod(PaymentMethod.COD)
+                          onPlaceOrder()
+                        }}
                         disabled={createOrderMutation.isPending}
                         className="flex-1 bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 font-bold px-8 h-12"
                       >
                         {createOrderMutation.isPending ? <Loader2 className="animate-spin" /> : 'COD'}
                       </Button>
                       <Button 
-                        onClick={() => handleCreateOrder(PaymentMethod.RAZORPAY)}
-                        disabled={createOrderMutation.isPending}
+                        onClick={() => {
+                          setPaymentMethod(PaymentMethod.RAZORPAY)
+                          onPlaceOrder()
+                        }}
+                        disabled={createOrderMutation.isPending || isPaying}
                         className="flex-1 bg-accent hover:bg-orange-600 text-white font-bold px-8 h-12"
                       >
-                         {createOrderMutation.isPending ? <Loader2 className="animate-spin" /> : 'PAY NOW'}
+                         {createOrderMutation.isPending || isPaying ? <Loader2 className="animate-spin" /> : 'PAY NOW'}
                       </Button>
                     </div>
                   </div>
@@ -316,50 +360,7 @@ export default function CheckoutPage() {
             </AnimatePresence>
           </div>
 
-          {/* STEP 4: PAYMENT OPTIONS (FOR NON-COD) */}
-          <div className="bg-white rounded-sm shadow-sm border border-gray-100 overflow-hidden">
-            <div className={`p-4 flex items-center justify-between ${activeStep === 4 ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>
-              <div className="flex items-center gap-4">
-                <span className={`w-6 h-6 rounded-sm text-xs font-bold flex items-center justify-center ${activeStep === 4 ? 'bg-white text-primary' : 'bg-gray-200'}`}>
-                  4
-                </span>
-                <span className="font-bold uppercase tracking-wider">Payment Details</span>
-              </div>
-            </div>
-
-            <AnimatePresence>
-              {activeStep === 4 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="p-8 text-center"
-                >
-                  <div className="mb-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Order Created!</h3>
-                    <p className="text-gray-500">Order ID: #{orderNumber}</p>
-                    <p className="text-2xl font-black text-primary mt-4">{formatPrice(finalTotal)}</p>
-                  </div>
-                  
-                  <Button 
-                    onClick={handlePay} 
-                    disabled={isPaying}
-                    className="w-full max-w-xs h-14 bg-[#2874F0] hover:bg-blue-700 text-white font-black text-lg shadow-lg"
-                  >
-                    {isPaying ? <Loader2 className="animate-spin mr-2" /> : null}
-                    PAY SECURELY WITH RAZORPAY
-                  </Button>
-                  
-                  <div className="mt-6 flex items-center justify-center gap-4 opacity-50 grayscale">
-                    <Image src="/images/visa.png" alt="Visa" width={40} height={40} className="object-contain" />
-                    <Image src="/images/mastercard.png" alt="Mastercard" width={40} height={40} className="object-contain" />
-                    <Image src="/images/upi.png" alt="UPI" width={40} height={40} className="object-contain" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
+          
         </div>
 
         {/* Right Sidebar: Summary */}

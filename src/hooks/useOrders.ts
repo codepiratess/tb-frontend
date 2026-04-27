@@ -11,7 +11,8 @@ export function useOrders(filters?: any) {
     queryKey: ['orders', filters],
     queryFn: async () => {
       const { data } = await api.get(API_ENDPOINTS.ORDERS.MY_ORDERS, { params: filters });
-      return data;
+      // Handle paginated response - return data array or the data directly
+      return data?.data || data || [];
     },
   });
 }
@@ -27,24 +28,88 @@ export function useOrder(id: string) {
   });
 }
 
-export function useCreateOrder() {
-  const queryClient = useQueryClient();
-  const router = useRouter();
+interface ShippingAddress {
+  fullName: string
+  phone: string
+  addressLine1: string
+  addressLine2?: string
+  landmark?: string
+  city: string
+  state: string
+  pincode: string
+  addressType?: string
+}
+
+interface OrderItem {
+  productId: string
+  quantity: number
+}
+
+interface CreateOrderPayload {
+  items: OrderItem[]
+  shippingAddress: ShippingAddress
+  paymentMethod: 'cod' | 'razorpay' | 
+    'upi' | 'card' | 'netbanking'
+  notes?: string
+}
+
+export const useCreateOrder = (
+  options?: { autoRedirect?: boolean }
+) => {
+  const autoRedirect = 
+    options?.autoRedirect ?? true
+  const queryClient = useQueryClient()
+  const router = useRouter()
 
   return useMutation({
-    mutationFn: async (dto: any) => {
-      const { data } = await api.post(API_ENDPOINTS.ORDERS.CREATE, dto);
-      return data;
+    mutationFn: async (
+      dto: CreateOrderPayload
+    ) => {
+      console.log(
+        'Sending order to API:', 
+        JSON.stringify(dto, null, 2)
+      )
+      const res = await api.post(
+        '/orders', 
+        dto
+      )
+      return res.data?.data
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      toast.success('Order placed successfully!');
-      router.push(`/orders/${data.id}`);
+    onSuccess: (order) => {
+      queryClient.invalidateQueries(
+        { queryKey: ['cart'] }
+      )
+
+      if (order.paymentMethod === 'cod') {
+        // Only auto-redirect for COD
+        queryClient.invalidateQueries(
+          { queryKey: ['orders'] }
+        )
+        toast.success(
+          '🎉 Order placed successfully!'
+        )
+        if (autoRedirect) {
+          router.push(
+            `/orders/${order.id}?success=true` 
+          )
+        }
+      }
+      // For razorpay: don't redirect here
+      // Payment hook handles redirect after
+      // payment verification
     },
     onError: (error: any) => {
-      toast.error(handleApiError(error));
+      console.error('Create order error:', 
+        error.response?.data
+      )
+      const msg = error.response?.data
+        ?.message
+      const errorText = Array.isArray(msg)
+        ? msg.join('\n')
+        : msg || 'Failed to place order'
+      toast.error(errorText)
     },
-  });
+  })
 }
 
 export function useCancelOrder() {

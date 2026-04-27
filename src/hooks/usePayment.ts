@@ -1,100 +1,164 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-import { useSelector } from 'react-redux';
-import api from '@/lib/api';
-import { API_ENDPOINTS } from '@/constants';
-import { RootState } from '@/store';
-import { handleApiError } from '@/lib/errorHandler';
+'use client'
+import { useMutation, useQueryClient } 
+  from '@tanstack/react-query'
+import { useDispatch } from 'react-redux'
+import { useRouter } from 'next/navigation'
+import api from '@/lib/api'
+import { clearCart } from 
+  '@/store/slices/cartSlice'
+import toast from 'react-hot-toast'
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
-export function useRazorpayPayment() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const { user } = useSelector((state: RootState) => state.auth);
-  
-  const verifyMutation = useVerifyPayment();
-
-  const loadScript = (src: string) => {
-    return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const initiatePayment = async (orderId: string, amountRaw: number, orderNumber: string) => {
-    try {
-      // 1. Create Razorpay Order
-      const { data: rzpData } = await api.post(API_ENDPOINTS.PAYMENTS.CREATE_ORDER, { orderId });
-      
-      const { razorpayOrderId, amount, currency, keyId } = rzpData;
-
-      // 2. Load Razorpay Script
-      const res = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-      if (!res) {
-        toast.error('Razorpay SDK failed to load. Check your connection.');
-        return;
-      }
-
-      // 3. Open Checkout
-      const options = {
-        key: keyId,
-        amount: amount,
-        currency: currency,
-        name: 'TownBolt',
-        description: `Order #${orderNumber}`,
-        order_id: razorpayOrderId,
-        prefill: {
-          name: user?.firstName || '',
-          email: user?.email || '',
-          contact: '', // Phone from profile if available
-        },
-        theme: { color: '#2874F0' },
-        handler: async (response: any) => {
-          try {
-            await verifyMutation.mutateAsync({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              orderId: orderId,
-            });
-            toast.success('Payment successful! 🎉');
-            queryClient.invalidateQueries({ queryKey: ['orders'] });
-            router.push(`/orders/${orderId}`);
-          } catch (err) {
-            toast.error('Payment verification failed');
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            toast.error('Payment cancelled');
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (error: any) {
-      toast.error(handleApiError(error));
+// Load Razorpay script dynamically
+const loadRazorpayScript = (): 
+  Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve(false)
+      return
     }
-  };
+    
+    // Already loaded
+    if ((window as any).Razorpay) {
+      resolve(true)
+      return
+    }
 
-  return { initiatePayment, isLoading: verifyMutation.isPending };
+    const script = document.createElement('script')
+    script.src = 
+      'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
 }
 
-export function useVerifyPayment() {
-  return useMutation({
-    mutationFn: async (dto: any) => {
-      const { data } = await api.post(API_ENDPOINTS.PAYMENTS.VERIFY, dto);
-      return data;
-    },
-  });
+export const useRazorpayPayment = () => {
+  const dispatch = useDispatch()
+  const router = useRouter()
+  const queryClient = useQueryClient()
+
+  const initiatePayment = async (
+    orderId: string,
+    orderNumber: string,
+    userInfo?: {
+      name?: string
+      email?: string
+      phone?: string
+    }
+  ) => {
+    // Step 1: Load Razorpay script
+    const loaded = await loadRazorpayScript()
+    if (!loaded) {
+      toast.error(
+        'Failed to load payment gateway. ' +
+        'Please check your internet connection.'
+      )
+      return
+    }
+
+    // Step 2: Create Razorpay order on backend
+    let razorpayData: any
+    try {
+      const res = await api.post(
+        '/payments/create-order',
+        { orderId }
+      )
+      razorpayData = res.data?.data
+    } catch (error: any) {
+      const msg = error.response?.data
+        ?.message || 'Failed to initiate payment'
+      toast.error(msg)
+      return
+    }
+
+    // Step 3: Open Razorpay checkout modal
+    const options = {
+      key: process.env
+        .NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: razorpayData.amount,
+      currency: razorpayData.currency || 'INR',
+      name: 'TownBolt',
+      description: `Order #${orderNumber}`,
+      order_id: razorpayData.razorpayOrderId,
+      prefill: {
+        name: razorpayData.prefill?.name 
+          || userInfo?.name || '',
+        email: userInfo?.email || '',
+        contact: razorpayData.prefill?.contact 
+          || userInfo?.phone || '',
+      },
+      theme: {
+        color: '#2874F0',
+      },
+      modal: {
+        ondismiss: () => {
+          toast.error(
+            'Payment cancelled. ' +
+            'Your order is saved. ' +
+            'You can pay later.'
+          )
+        },
+      },
+      handler: async (response: any) => {
+        // This runs when payment is SUCCESS
+        toast.loading('Verifying payment...')
+
+        try {
+          // Step 4: Verify payment on backend
+          const verifyRes = await api.post(
+            '/payments/verify',
+            {
+              razorpayOrderId: 
+                response.razorpay_order_id,
+              razorpayPaymentId: 
+                response.razorpay_payment_id,
+              razorpaySignature: 
+                response.razorpay_signature,
+              orderId: orderId,
+            }
+          )
+
+          toast.dismiss()
+          toast.success(
+            '🎉 Payment successful!'
+          )
+
+          // Clear cart and redirect
+          dispatch(clearCart())
+          queryClient.invalidateQueries(
+            { queryKey: ['orders'] }
+          )
+          queryClient.invalidateQueries(
+            { queryKey: ['cart'] }
+          )
+
+          router.push(
+            `/orders/${orderId}?success=true&payment=razorpay` 
+          )
+        } catch (verifyError: any) {
+          toast.dismiss()
+          toast.error(
+            'Payment verification failed. ' +
+            'Contact support with payment ID: ' +
+            response.razorpay_payment_id
+          )
+        }
+      },
+    }
+
+    const rzp = new (window as any)
+      .Razorpay(options)
+
+    rzp.on('payment.failed', (response: any) => {
+      toast.error(
+        `Payment failed: ${
+          response.error.description
+        }`
+      )
+    })
+
+    rzp.open()
+  }
+
+  return { initiatePayment, isLoading: false }
 }
